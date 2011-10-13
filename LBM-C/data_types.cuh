@@ -16,14 +16,13 @@ typedef struct
 	float *rho;
 	float *ux;
 	float *uy;
-	float *uz;
 	float *u;
 } Output;
 
 typedef struct
 {
 	float tau;
-	int3 length;
+	int2 length;
 	int b_o[19];
 	float *boundary_type;
 	float *boundary_value;
@@ -35,7 +34,6 @@ typedef struct
 	float rho;
 	float ux;
 	float uy;
-	float uz;
 } Node;
 
 #endif
