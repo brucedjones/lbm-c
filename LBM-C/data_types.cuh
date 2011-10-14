@@ -23,7 +23,7 @@ typedef struct
 {
 	float tau;
 	int2 length;
-	int b_o[19];
+	int b_o[4];
 	float *boundary_type;
 	float *boundary_value;
 } Domain;

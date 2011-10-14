@@ -150,26 +150,12 @@ void load_and_assemble_data(void)
 	// Boundary nodes are treated as chains of face nodes, vertex nodes and corner nodes,
 	// the length of each of these chains is a function of domain dimensions and is calculated
 	// here.
-	domain_host->b_o[0] = (length.x-2)*(length.y-2); //FACE XY_Z-
-	domain_host->b_o[1] = domain_host->b_o[0]+(length.x-2)*(length.y-2); //FACE XY_Z+
-	domain_host->b_o[2] = domain_host->b_o[1]+(length.x-2)*(length.z-2); //FACE XZ_Y-
-	domain_host->b_o[3] = domain_host->b_o[2]+(length.x-2)*(length.z-2); //FACE XZ_Y+
-	domain_host->b_o[4] = domain_host->b_o[3]+(length.y-2)*(length.z-2); //FACE YZ_X-
-	domain_host->b_o[5] = domain_host->b_o[4]+(length.y-2)*(length.z-2); //FACE YZ_X+
-	domain_host->b_o[6] = domain_host->b_o[5]+(length.z-2); //VERTEX X- Y- Z
-	domain_host->b_o[7] = domain_host->b_o[6]+(length.z-2); //VERTEX X+ Y+ Z
-	domain_host->b_o[8] = domain_host->b_o[7]+(length.z-2); //VERTEX X+ Y- Z
-	domain_host->b_o[9] = domain_host->b_o[8]+(length.z-2); //VERTEX X- Y+ Z
-	domain_host->b_o[10] = domain_host->b_o[9]+(length.y-2); //VERTEX X- Z- Y
-	domain_host->b_o[11] = domain_host->b_o[10]+(length.y-2); //VERTEX X+ Z+ Y
-	domain_host->b_o[12] = domain_host->b_o[11]+(length.y-2); //VERTEX X+ Z- Y
-	domain_host->b_o[13] = domain_host->b_o[12]+(length.y-2); //VERTEX X- Z+ Y
-	domain_host->b_o[14] = domain_host->b_o[13]+(length.x-2); //VERTEX X+ Y+ X
-	domain_host->b_o[15] = domain_host->b_o[14]+(length.x-2); //VERTEX X- Y- X
-	domain_host->b_o[16] = domain_host->b_o[15]+(length.x-2); //VERTEX X+ Y- X
-	domain_host->b_o[17] = domain_host->b_o[16]+(length.x-2); //VERTEX X- Y+ X
-	domain_host->b_o[18] = domain_host->b_o[17]+8;
-	l_b_o = domain_host->b_o[18];
+	domain_host->b_o[0] = domain_host->b_o[0]+(length.y-2); // X-
+	domain_host->b_o[1] = domain_host->b_o[1]+(length.y-2); // X+
+	domain_host->b_o[2] = domain_host->b_o[2]+(length.x-2); // Y-
+	domain_host->b_o[3] = domain_host->b_o[3]+(length.x-2); // Y+
+	domain_host->b_o[4] = domain_host->b_o[4]+3;
+	l_b_o = domain_host->b_o[4];
 
 	// ASSEMBLE STRUCT ON HOST: Output
 	output->rho = rho;
