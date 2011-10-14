@@ -10,30 +10,34 @@
 // PREFORMS ONE ITERATION OF THE LBM ON BULK NODES(NODES WHICH ARE NOT ON A DOMAIN BOUNDARY)
 __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain)
 {
-	// Compute coordinates
-	int x     = threadIdx.x+1;
-    int y     = blockIdx.x+1;
-
+	// Declare variables
 	float f_eq,omega[Q],cu,u_sq, collision_bgk, collision_s, B;
 	int i2d, ex[Q], ey[Q], opp[Q];
 	int2 length;
 	Node current_node;
-	current_node.rho = 0; current_node.ux = 0; current_node.uy = 0;
+	
 
-	// Load lattice constants
+	// Initialise variables
 	LOAD_EX(ex);
 	LOAD_EY(ey);
 	LOAD_OMEGA(omega);
 	LOAD_OPP(opp);
+	current_node.rho = 0; current_node.ux = 0; current_node.uy = 0;
 	
+	// Compute coordinates
+	int x     = threadIdx.x+1;
+    int y     = blockIdx.x+1;
+
 	// Load domain configuration
 	length.x = domain->length.x;
 	length.y = domain->length.y;
 	int domain_size = length.x*length.y;
 	float tau = domain->tau;
 
-	// Check and account for "boundary" type, take note, this refers to internal boundaries
+	// Check and account for boundary type, take note, this refers to internal boundaries
 	// bounceback, halfway bounceback etc
+	// B = 0 - BOUNCEBACK
+	// 1 <= B < 2 - PARTIAL BOUNCEBACK
 	int i2d_prime = x + y*length.x;
 	float boundary_type = floor(domain->boundary_type[i2d_prime]);
 	if (boundary_type >= 1.f) 
@@ -44,7 +48,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 		B = 1.f;
 	} 
 
-	// Stream f's and calculate macroscopic values. Streaming occurs here as streaming represents
+	// STREAMING - Stream f's and calculate macroscopic values. Streaming occurs here as streaming represents
 	// an uncoalesced memory access, uncoalesced reads are less time consuming than uncoalesced
 	// writes.
 	int target_x, target_y;
@@ -68,7 +72,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 	
 
-	// COALESCED WRITE
+	// COLLISION - COALESCED WRITE
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
@@ -86,31 +90,35 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 // PREFORMS ONE ITERATION OF THE LBM ON BOUNDARY NODES
 __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain, int offset)
 {
+	// Declare Variables
+	float f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
+	int i2d, ex[Q], ey[Q], ez[Q], opp[Q];
+	int2 length;
+	Node current_node;
+
+	// Initialise variables
+	LOAD_EX(ex);
+	LOAD_EY(ey);
+	LOAD_OMEGA(omega);
+	LOAD_OPP(opp);
+	current_node.rho = 0; current_node.ux = 0; current_node.uy = 0;
+	
+	// Compute coordinates
 	int idx=blockIdx.x*BLOCK_SIZE+threadIdx.x+offset;
 	int2 coords = compute_boundary_coords(idx, domain);
 	int x = coords.x;
 	int y = coords.y;
 
-	float f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
-	int i2d, ex[Q], ey[Q], ez[Q], opp[Q];
-	int2 length;
-	Node current_node;
-	current_node.rho = 0; current_node.ux = 0; current_node.uy = 0;
-
-	LOAD_EX(ex);
-	LOAD_EY(ey);
-	LOAD_OMEGA(omega);
-	LOAD_OPP(opp);
-	
+	// Load domain configuration
 	length.x = domain->length.x;
 	length.y = domain->length.y;
 	int domain_size = length.x*length.y;
-
 	float tau = domain->tau;
 
-	int target_x, target_y;
-
-	int i2d_prime = x + y*length.x;
+	// Check and account for boundary type, take note, this refers to internal boundaries
+	// bounceback, halfway bounceback etc
+	// B = 0 - BOUNCEBACK
+	// 1 <= B < 2 - PARTIAL BOUNCEBACK
 	float boundary_type = floor(domain->boundary_type[i2d_prime]);
 	float boundary_value = domain->boundary_value[i2d_prime];
 	if (boundary_type >= 1) 
@@ -122,7 +130,9 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	} 
 	//B = 0.f;
 
-
+	// STREAMING - UNCOALESCED READ
+	int target_x, target_y;
+	int i2d_prime = x + y*length.x;
 	for(int i = 0; i<Q; i++)
 	{
 		target_x = x+ex[i]; target_y = y+ey[i]; target_z = z+ez[i];
@@ -144,12 +154,14 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	current_node.uy = current_node.uy/current_node.rho;
 
 	// APPLY BOUNDARY CONDITION
-	if(boundary_type == 2) current_node = zh_pressure_ZY_x(current_node, boundary_value);
-	if(boundary_type == 3) current_node = zh_pressure_ZY_X(current_node, boundary_value);
+	// 2	-	Zhou/He Pressure, X- edge, uy = 0
+	// 3	-	Zhou/He Pressure, X+ edge, uy = 0
+	if(boundary_type == 2) current_node = zh_pressure_x(current_node, boundary_value);
+	if(boundary_type == 3) current_node = zh_pressure_X(current_node, boundary_value);
 
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 
-	// COALESCED WRITE
+	// COLLISION - COALESCED WRITE
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
@@ -166,6 +178,10 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 
 __device__ inline int3 compute_boundary_coords(int idx, Domain *domain)
 {
+	// All boundary nodes are indexed by a single index, thresholds define
+	// the length of boundary edges and the way in which the x and y 
+	// coords are calculated from the index
+
 	int2 coord, length;
 	int id;
 
