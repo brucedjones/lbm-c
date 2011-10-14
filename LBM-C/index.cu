@@ -22,7 +22,7 @@
 #include <cuda_runtime_api.h>
 #include "data_types.cuh"
 #include "macros.cu"
-#include "d3q15_boundary.cu"
+#include "d2q9_boundary.cu"
 #include "solver.cuh"
 #include "index.cuh"
 

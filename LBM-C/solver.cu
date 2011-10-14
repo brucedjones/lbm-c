@@ -4,7 +4,7 @@
 #include "macros.cu"
 #include "solver.cuh"
 #include "data_types.cuh"
-#include "d3q15_boundary.cu"
+#include "d2q9_boundary.cu"
 
 
 // PREFORMS ONE ITERATION OF THE LBM ON BULK NODES(NODES WHICH ARE NOT ON A DOMAIN BOUNDARY)

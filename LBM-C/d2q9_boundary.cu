@@ -1,10 +1,10 @@
-#ifndef D3Q15_BOUNDARY
-#define D3Q15_BOUNDARY
+#ifndef D2Q9_BOUNDARY
+#define D2Q9_BOUNDARY
 
 #include "data_types.cuh"
 #include "d3q15_boundary.cuh"
 
-__device__ inline Node zh_pressure_ZY_x(Node input, float rho_boundary)
+__device__ inline Node zh_pressure_x(Node input, float rho_boundary)
 {
 	Node output; //= input;
 	output.f[0] = input.f[0];
@@ -34,7 +34,7 @@ __device__ inline Node zh_pressure_ZY_x(Node input, float rho_boundary)
 	return output;
 }
 
-__device__ inline Node zh_pressure_ZY_X(Node input, float rho_boundary)
+__device__ inline Node zh_pressure_X(Node input, float rho_boundary)
 {
 	Node output; //= input;
 	output.f[0] = input.f[0];
