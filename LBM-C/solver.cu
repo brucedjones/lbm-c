@@ -172,157 +172,45 @@ __device__ inline int3 compute_boundary_coords(int idx, Domain *domain)
 	length.x = domain->length.x;
 	length.y = domain->length.y;
 
-	if(idx>=0 && idx<domain->b_o[0]) //FACE XY_Z-
+	if(idx>=0 && idx<domain->b_o[0]) // X-
 	{
 		id = idx;
-		coord.y = (id/(length.x-2))+1;//QUOTIENT((id), (length.x-2))+1;
-		coord.x = (id%(length.x-2))+1;//MODULUS_SUP((id),(length.x-2),coord.y)+1;
-		coord.z = 0;
-	} else if (idx>=domain->b_o[0] && idx<domain->b_o[1]) //FACE XY_Z+
+		coord.y = id+1;
+		coord.x = 0;
+	} else if (idx>=domain->b_o[0] && idx<domain->b_o[1]) // X+
 	{
 		id = idx-domain->b_o[0];
-		coord.y = (id/(length.x-2))+1;
-		coord.x = (id%(length.x-2))+1;
-		coord.z = length.z-1;
-	} else if (idx>=domain->b_o[1] && idx<domain->b_o[2]) //FACE XZ_Y-
+		coord.y = id+1;
+		coord.x = length.x-1;
+	} else if (idx>=domain->b_o[1] && idx<domain->b_o[2]) // Y-
 	{
 		id = idx-domain->b_o[1];
-		coord.z = (id/(length.x-2))+1;
-		coord.x = (id%(length.x-2))+1;
+		coord.x = id+1;
 		coord.y = 0;
-	} else if (idx>=domain->b_o[2] && idx<domain->b_o[3]) //FACE XZ_Y+
+	} else if (idx>=domain->b_o[2] && idx<domain->b_o[3]) // Y+
 	{
 		id = idx-domain->b_o[2];
-		coord.z = (id/(length.x-2))+1;
-		coord.x = (id%(length.x-2))+1;
+		coord.x = id+1;
 		coord.y = length.y-1;
-	} else if (idx>=domain->b_o[3] && idx<domain->b_o[4]) //FACE ZY_X-
+	} else if (idx>=domain->b_o[3]) //CORNERS
 	{
 		id = idx-domain->b_o[3];
-		coord.y = (id/(length.z-2))+1;
-		coord.z = (id%(length.z-2))+1;
-		coord.x = 0;
-	} else if (idx>=domain->b_o[4] && idx<domain->b_o[5]) //FACE ZY_X+
-	{
-		id = idx-domain->b_o[4];
-		coord.y = (id/(length.z-2))+1;
-		coord.z = (id%(length.z-2))+1;
-		coord.x = length.x-1;
-	} else if (idx>=domain->b_o[5] && idx<domain->b_o[6]) //VERTEX X- Y- Z
-	{
-		id = idx-domain->b_o[5];
-		coord.x = 0;
-		coord.y = 0;
-		coord.z = id+1;
-	} else if (idx>=domain->b_o[6] && idx<domain->b_o[7]) //VERTEX X+ Y+ Z
-	{
-		id = idx-domain->b_o[6];
-		coord.x = length.x-1;
-		coord.y = length.y-1;
-		coord.z = id+1;
-	} else if (idx>=domain->b_o[7] && idx<domain->b_o[8]) //VERTEX X+ Y- Z
-	{
-		id = idx-domain->b_o[7];
-		coord.x = length.x-1;
-		coord.y = 0;
-		coord.z = id+1;
-	} else if (idx>=domain->b_o[8] && idx<domain->b_o[9]) //VERTEX X- Y+ Z
-	{
-		id = idx-domain->b_o[8];
-		coord.x = 0;
-		coord.y = length.y-1;
-		coord.z = id+1;
-	} else if (idx>=domain->b_o[9] && idx<domain->b_o[10]) //VERTEX X- Z- Y
-	{
-		id = idx-domain->b_o[9];
-		coord.x = 0;
-		coord.y = id+1;
-		coord.z = 0;
-	} else if (idx>=domain->b_o[10] && idx<domain->b_o[11]) //VERTEX X+ Z+ Y
-	{
-		id = idx-domain->b_o[10];
-		coord.x = length.x-1;
-		coord.y = id+1;
-		coord.z = length.z-1;
-	} else if (idx>=domain->b_o[11] && idx<domain->b_o[12]) //VERTEX X+ Z- Y
-	{
-		id = idx-domain->b_o[11];
-		coord.x = length.x-1;
-		coord.y = id+1;
-		coord.z = 0;
-	} else if (idx>=domain->b_o[12] && idx<domain->b_o[13]) //VERTEX X- Z+ Y
-	{
-		id = idx-domain->b_o[12];
-		coord.x = 0;
-		coord.y = id+1;
-		coord.z = length.z-1;
-	} else if (idx>=domain->b_o[13] && idx<domain->b_o[14]) //VERTEX Y- Z- X
-	{
-		id = idx-domain->b_o[13];
-		coord.x = id+1;
-		coord.y = 0;
-		coord.z = 0;
-	} else if (idx>=domain->b_o[14] && idx<domain->b_o[15]) //VERTEX Y+ Z+ X
-	{
-		id = idx-domain->b_o[14];
-		coord.x = id+1;
-		coord.y = length.y-1;
-		coord.z = length.z-1;
-	} else if (idx>=domain->b_o[15] && idx<domain->b_o[16]) //VERTEX Y+ Z- X
-	{
-		id = idx-domain->b_o[15];
-		coord.x = id+1;
-		coord.y = length.y-1;
-		coord.z = 0;
-	} else if (idx>=domain->b_o[16] && idx<domain->b_o[17]) //VERTEX Y- Z+ X
-	{
-		id = idx-domain->b_o[16];
-		coord.x = id+1;
-		coord.y = 0;
-		coord.z = length.z-1;
-	} else if (idx>=domain->b_o[17]) //CORNERS
-	{
-		id = idx-domain->b_o[17];
 		if(id == 0)
 		{
 			coord.x = 0;
 			coord.y = 0;
-			coord.z = 0;
 		} else if(id==1)
 		{
 			coord.x = 0;
 			coord.y = length.y-1;
-			coord.z = 0;
 		} else if(id==2)
 		{
 			coord.x = length.x-1;
 			coord.y = length.y-1;
-			coord.z = 0;
 		} else if(id==3)
 		{
 			coord.x = length.x-1;
 			coord.y = 0;
-			coord.z = 0;
-		} else if(id==4)
-		{
-			coord.x = 0;
-			coord.y = 0;
-			coord.z = length.z-1;
-		} else if(id==5)
-		{
-			coord.x = 0;
-			coord.y = length.y-1;
-			coord.z = length.z-1;
-		} else if(id==6)
-		{
-			coord.x = length.x-1;
-			coord.y = length.y-1;
-			coord.z = length.z-1;
-		} else if(id==7)
-		{
-			coord.x = length.x-1;
-			coord.y = 0;
-			coord.z = length.z-1;
 		}
 	}
 

@@ -154,7 +154,7 @@ void load_and_assemble_data(void)
 	domain_host->b_o[1] = domain_host->b_o[1]+(length.y-2); // X+
 	domain_host->b_o[2] = domain_host->b_o[2]+(length.x-2); // Y-
 	domain_host->b_o[3] = domain_host->b_o[3]+(length.x-2); // Y+
-	domain_host->b_o[4] = domain_host->b_o[4]+3;
+	domain_host->b_o[4] = domain_host->b_o[3]+3;
 	l_b_o = domain_host->b_o[4];
 
 	// ASSEMBLE STRUCT ON HOST: Output
@@ -338,7 +338,7 @@ void iterate(void)
 	// GRID AND BLOCK DEFINITIONS CAN BE CALCULATED BEFORE ITERATE
 	// DEFINE BULK GRID AND BLOCK
 	dim3 Db_bulk = dim3(length.x-2,1,1);
-    dim3 Dg_bulk = dim3(length.y-2,length.z-2,1);
+    dim3 Dg_bulk = dim3(length.y-2,1,1);
 	// DEFINE BOUNDARY GRID AND BLOCK
 	int boundary_amount = l_b_o;
 	int boundary_grid=(int)(boundary_amount/BLOCK_SIZE);
