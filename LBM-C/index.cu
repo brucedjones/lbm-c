@@ -110,7 +110,6 @@ void allocate_memory_host(void)
 	rho = (float *)malloc(domain_size*sizeof(float));
 	ux = (float *)malloc(domain_size*sizeof(float));
 	uy = (float *)malloc(domain_size*sizeof(float));
-	uz = (float *)malloc(domain_size*sizeof(float));
 	u = (float *)malloc(domain_size*sizeof(float));
 }
 
@@ -145,7 +144,6 @@ void load_and_assemble_data(void)
 	domain_host->tau = tau;
 	domain_host->length.x = length.x;
 	domain_host->length.y = length.y;
-	domain_host->length.z = length.z;
 	
 	// Boundary nodes are treated as chains of face nodes, vertex nodes and corner nodes,
 	// the length of each of these chains is a function of domain dimensions and is calculated
@@ -161,7 +159,6 @@ void load_and_assemble_data(void)
 	output->rho = rho;
 	output->ux = ux;
 	output->uy = uy;
-	output->uz = uz;
 	output->u = u;
 
 	// ASSEMBLE STRUCT ON DEVICE: Lattice
@@ -176,7 +173,6 @@ void load_and_assemble_data(void)
 	domain_tmp->tau = tau;
 	domain_tmp->length.x = length.x;
 	domain_tmp->length.y = length.y;
-	domain_tmp->length.z = length.z;
 	domain_tmp->boundary_type = boundary_type_device;
 	domain_tmp->boundary_value = boundary_value_device;
 	cudasafe(cudaMemcpy(domain_device, domain_tmp, sizeof(Domain),cudaMemcpyHostToDevice),"Copy Data: control_device");
