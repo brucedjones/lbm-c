@@ -202,27 +202,25 @@ void setup(void)
 {
 	FILE * input_file;
     input_file = fopen ("input.dat","r");
-	int IC_type, i3d;
+	int IC_type, i2d;
 	//IC_type = 0;
-	fscanf(input_file,"%d %d %d %f %d %d %d", &length.x, &length.y, &length.z, &tau, &saveT, &maxT, &IC_type);
-	//printf("%d %d %d %f %d %d %d\n", length.x, length.y, length.z, tau, saveT, maxT, IC_type);
-	domain_size = length.x*length.y*length.z;
+	fscanf(input_file,"%d %d %f %d %d %d", &length.x, &length.y, &tau, &saveT, &maxT, &IC_type);
+	//printf("%d %d %f %d %d %d\n", length.x, length.y, tau, saveT, maxT, IC_type);
+	domain_size = length.x*length.y;
 	allocate_memory_host();
 	allocate_memory_device();
 	load_and_assemble_data();
 	if (IC_type == 0) load_static_IC();
-	for (int k = 0; k<length.z; k++)
+	for(int j = 0; j<length.y; j++)
 	{
-		for(int j = 0; j<length.y; j++)
+		for(int i = 0; i<length.x; i++)
 		{
-			for(int i = 0; i<length.x; i++)
-			{
-				i3d = i + j*length.x + k*length.x*length.y;
-				fscanf(input_file,"%f %f", &domain_host->boundary_type[i3d], &domain_host->boundary_value[i3d]);
-				//printf("%f %f\n", domain_host->boundary_type[i3d], domain_host->boundary_value[i3d]);
-			}
+			i2d = i + j*length.x;
+			fscanf(input_file,"%f %f", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
+			//printf("%f %f\n", domain_host->boundary_type[i2d], domain_host->boundary_value[i2d]);
 		}
 	}
+
 
 	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: omega_device");
 	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: omega_device");	
