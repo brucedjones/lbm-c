@@ -253,69 +253,61 @@ void output_macros(int time)
 	// Copy data from device to host
 	cudasafe(cudaMemcpy(f_host, f_1_device, sizeof(float)*Q*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data");
 	
-	int i3d, target_x, target_y, target_z, ex[Q], ey[Q], ez[Q];
-	float rho = 0; float ux = 0; float uy = 0; float uz = 0; float u = 0;
+	int i2d, target_x, target_y, ex[Q], ey[Q];
+	float rho = 0; float ux = 0; float uy = 0; float u = 0;
 	char fname[19];
 	FILE *file;
 
 	LOAD_EX(ex);
 	LOAD_EY(ey);
-	LOAD_EZ(ez);
 
 // Assemble formatted filename	
 	sprintf(fname, "results_%i.dat", time);
 // Open file
 	file = fopen(fname,"w");
 // Write File Header	
-	fprintf(file,"TITLE=\"3D Poiseuille Flow\"\nVARIABLES= \"X\", \"Y\", \"Z\", \"rho\", \"uX\", \"uY\", \"uZ\", \"u\"");//\nDATASETAUXDATA ComputerTime=\"%lus\"\nDATASETAUXDATA DeviceMemoryUsed=\"%luMb\"",cputime, mem);
+	fprintf(file,"TITLE=\"2D Poiseuille Flow\"\nVARIABLES= \"X\", \"Y\", \"rho\", \"uX\", \"uY\", \"u\"");//\nDATASETAUXDATA ComputerTime=\"%lus\"\nDATASETAUXDATA DeviceMemoryUsed=\"%luMb\"",cputime, mem);
 // Write Zone Header
 	// note: nx and ny values are not in the "correct" order in the zone header, errors occur when loading the data in tecplot
 	// if the "correct" order is used
-	fprintf(file,"\nZONE T=\"3D Poiseuille Flow at time = %i\", I=%i, J=%i, K=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,length.z,time);
+	fprintf(file,"\nZONE T=\"3D Poiseuille Flow at time = %i\", I=%i, J=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,time);
 // Loop over all nodes to calculate and print nodal macroscopic values to file, output some feedback data to console
-	for (int z=0;z<length.z;z++){
-		for (int y=0;y<length.y;y++){
-			for (int x=0;x<length.x;x++){
-				// Calculate macroscopic values
-				for(int i =0; i<Q; i++)
-				{
-					// Streaming occurs prior to collision, therefore we must stream before
-					// calculation of macroscopic value's
-					target_x = x+ex[i]; target_y = y+ey[i]; target_z = z+ez[i];
-					//PERIODIC BOUNDARY
-					if(target_x>(length.x-1)) target_x = 1; if(target_x<0) target_x = length.x-1;
-					if(target_y>(length.y-1)) target_y = 1; if(target_y<0) target_y = length.y-1;
-					if(target_z>(length.z-1)) target_z = 1; if(target_z<0) target_z = length.z-1;
-
-					i3d = (target_x + target_y*length.x + target_z*length.y*length.x)+i*(domain_size);
-					rho += lattice_host->f[i3d];
-					ux += ex[i]*lattice_host->f[i3d];
-					uy += ey[i]*lattice_host->f[i3d];
-					uz += ez[i]*lattice_host->f[i3d];
-				}
-
-				u = sqrt(ux*ux+uy*uy+uz*uz);
-				ux = ux/rho;
-				uy = uy/rho;
-				uz = uz/rho;
-
-				// Determine which nodes is currently being considered
-				int i3d_prime = x+y*length.x+z*length.x*length.y;
-				// Impose zero velocity on bounceback nodes
-				if(domain_host->boundary_type[i3d_prime] == 0)
-				{
-					ux = 0;
-					uy = 0;
-					uz = 0;
-					u = 0;
-				}
-				// Write to files
-				fprintf(file,"\n%i %i %i %f %f %f %f %f", x, y, z, rho, ux, uy, uz, u);
-				// Output reference information to console
-				if (y==length.y/2 && x == length.x/4 && z == length.z/2) {printf("\n time = %i; rho = %f; uX = %f; uY = %f; uZ = %f", time, rho, ux, uy, uz);}
-				// Reset macroscopic variable containers
-				rho = 0; ux = 0; uy = 0; uz = 0; u = 0;
+	for (int y=0;y<length.y;y++){
+		for (int x=0;x<length.x;x++){
+			// Calculate macroscopic values
+			for(int i =0; i<Q; i++)
+			{
+				// Streaming occurs prior to collision, therefore we must stream before
+				// calculation of macroscopic value's
+				target_x = x+ex[i]; target_y = y+ey[i];
+				//PERIODIC BOUNDARY
+				if(target_x>(length.x-1)) target_x = 1; if(target_x<0) target_x = length.x-1;
+				if(target_y>(length.y-1)) target_y = 1; if(target_y<0) target_y = length.y-1;
+				i2d = (target_x + target_y*length.x)+i*(domain_size);
+				rho += lattice_host->f[i2d];
+				ux += ex[i]*lattice_host->f[i2d];
+				uy += ey[i]*lattice_host->f[i2d];
 			}
+
+			ux = ux/rho;
+			uy = uy/rho;
+			u = sqrt(ux*ux+uy*uy);
+
+			// Determine which nodes is currently being considered
+			int i2d_prime = x+y*length.x;
+			// Impose zero velocity on bounceback nodes
+			if(domain_host->boundary_type[i2d_prime] == 0)
+			{
+				ux = 0;
+				uy = 0;
+				u = 0;
+			}
+			// Write to files
+			fprintf(file,"\n%i %i %f %f %f %f", x, y, rho, ux, uy, u);
+			// Output reference information to console
+			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f", time, rho, ux, uy);}
+			// Reset macroscopic variable containers
+			rho = 0; ux = 0; uy = 0; u = 0;
 		}
 	}
 	// Close file
