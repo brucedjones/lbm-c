@@ -149,7 +149,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 		current_node.ux += ex[opp[i]]*current_node.f[opp[i]];
 		current_node.uy += ey[opp[i]]*current_node.f[opp[i]];
 	}
-	
+
 	current_node.ux = current_node.ux/current_node.rho;
 	current_node.uy = current_node.uy/current_node.rho;
 

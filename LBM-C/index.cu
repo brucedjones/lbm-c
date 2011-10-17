@@ -147,11 +147,11 @@ void load_and_assemble_data(void)
 	// Boundary nodes are treated as chains of face nodes, vertex nodes and corner nodes,
 	// the length of each of these chains is a function of domain dimensions and is calculated
 	// here.
-	domain_host->b_o[0] = domain_host->b_o[0]+(length.y-2); // X-
-	domain_host->b_o[1] = domain_host->b_o[1]+(length.y-2); // X+
-	domain_host->b_o[2] = domain_host->b_o[2]+(length.x-2); // Y-
-	domain_host->b_o[3] = domain_host->b_o[3]+(length.x-2); // Y+
-	domain_host->b_o[4] = domain_host->b_o[3]+3;
+	domain_host->b_o[0] = (length.y-2); // X-
+	domain_host->b_o[1] = domain_host->b_o[0]+(length.y-2); // X+
+	domain_host->b_o[2] = domain_host->b_o[1]+(length.x-2); // Y-
+	domain_host->b_o[3] = domain_host->b_o[2]+(length.x-2); // Y+
+	domain_host->b_o[4] = domain_host->b_o[3]+4;
 	l_b_o = domain_host->b_o[4];
 
 	// ASSEMBLE STRUCT ON HOST: Output
@@ -175,7 +175,7 @@ void load_and_assemble_data(void)
 	domain_tmp->boundary_type = boundary_type_device;
 	domain_tmp->boundary_value = boundary_value_device;
 	cudasafe(cudaMemcpy(domain_device, domain_tmp, sizeof(Domain),cudaMemcpyHostToDevice),"Copy Data: control_device");
-	cudasafe(cudaMemcpy(&domain_device->b_o, &domain_host->b_o, sizeof(int)*19,cudaMemcpyHostToDevice),"Copy Data: b_o");
+	cudasafe(cudaMemcpy(&domain_device->b_o, &domain_host->b_o, sizeof(int)*5,cudaMemcpyHostToDevice),"Copy Data: b_o");
 }
 
 // CALCULATES AND LOADS A CONSTANT DENSITY ZERO VELOCITY INITIAL CONDITION FOR THE DOMAIN
