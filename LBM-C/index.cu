@@ -65,7 +65,6 @@ int main(int argc, char **argv)
 	// Report domain configuration
 	printf("Length.x:		%d\n", domain_host->length.x);
 	printf("Length.y:		%d\n", domain_host->length.y);
-	printf("Length.z:		%d\n", domain_host->length.z);
 	printf("Relaxation Time (Tau):	%f\n", domain_host->tau);
 	printf("\nPress the any key to continue...");
 	getchar();

@@ -2,7 +2,7 @@
 #define D2Q9_BOUNDARY
 
 #include "data_types.cuh"
-#include "d3q15_boundary.cuh"
+#include "d2q9_boundary.cuh"
 
 __device__ inline Node zh_pressure_x(Node input, float rho_boundary)
 {

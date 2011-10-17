@@ -114,6 +114,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	length.y = domain->length.y;
 	int domain_size = length.x*length.y;
 	float tau = domain->tau;
+	int i2d_prime = x + y*length.x;
 
 	// Check and account for boundary type, take note, this refers to internal boundaries
 	// bounceback, halfway bounceback etc
@@ -132,10 +133,9 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 
 	// STREAMING - UNCOALESCED READ
 	int target_x, target_y;
-	int i2d_prime = x + y*length.x;
 	for(int i = 0; i<Q; i++)
 	{
-		target_x = x+ex[i]; target_y = y+ey[i]; target_z = z+ez[i];
+		target_x = x+ex[i]; target_y = y+ey[i];
 		//PERIODIC BOUNDARY
 		if(target_x>(length.x-1)) target_x = 0; if(target_x<0) target_x = length.x-1;
 		if(target_y>(length.y-1)) target_y = 0; if(target_y<0) target_y = length.y-1;
@@ -176,7 +176,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	}
 }
 
-__device__ inline int3 compute_boundary_coords(int idx, Domain *domain)
+__device__ inline int2 compute_boundary_coords(int idx, Domain *domain)
 {
 	// All boundary nodes are indexed by a single index, thresholds define
 	// the length of boundary edges and the way in which the x and y 
@@ -232,7 +232,7 @@ __device__ inline int3 compute_boundary_coords(int idx, Domain *domain)
 
 	return coord;
 }
-
+/*
 __global__ void iterate_all_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain, int offset, int type)
 {
 	int x,y,z;
@@ -330,7 +330,7 @@ __global__ void iterate_all_kernel (Lattice *lattice_1, Lattice *lattice_2, Doma
 
 		lattice_2->f[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
 	}
-}
+}*/
 
 
 #endif
