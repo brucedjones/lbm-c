@@ -67,12 +67,10 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 	}
 	
 	current_node.ux = current_node.ux/current_node.rho;
-	current_node.uy = current_node.uy/current_node.rho;
-
-	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
-	
+	current_node.uy = current_node.uy/current_node.rho;	
 
 	// COLLISION - COALESCED WRITE
+	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
@@ -159,9 +157,8 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	if(boundary_type == 2) current_node = zh_pressure_x(current_node, boundary_value);
 	if(boundary_type == 3) current_node = zh_pressure_X(current_node, boundary_value);
 
-	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
-
 	// COLLISION - COALESCED WRITE
+	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
