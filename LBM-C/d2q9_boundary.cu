@@ -54,7 +54,7 @@ __device__ inline Node zh_pressure_X(Node input, float rho_boundary)
 	return output;
 }
 
-__device__ inline Node zh_pressure_edge(Node input, float rho_boundary, int[8] vector_order, int direction)
+__device__ inline Node zh_pressure_edge(Node input, float rho_boundary, int vector_order[8], int direction)
 {
 	// Applies Zhou/He pressure boundary condition for edge nodes
 	// vector_order:

@@ -1,6 +1,8 @@
 #ifndef SOLVER
 #define SOLVER
 
+#define LOAD_x_ORDER(a) {a[0]=3;a[1]=6;a[2]=7;a[3]=2;a[4]=4;a[5]=1;a[6]=8;a[7]=5;}
+
 #include "macros.cu"
 #include "solver.cuh"
 #include "data_types.cuh"
@@ -90,7 +92,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 {
 	// Declare Variables
 	float f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
-	int i2d, ex[Q], ey[Q], ez[Q], opp[Q];
+	int i2d, ex[Q], ey[Q], opp[Q];
 	int2 length;
 	Node current_node;
 
@@ -156,6 +158,9 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	// 3	-	Zhou/He Pressure, X+ edge, uy = 0
 	if(boundary_type == 2) current_node = zh_pressure_x(current_node, boundary_value);
 	if(boundary_type == 3) current_node = zh_pressure_X(current_node, boundary_value);
+	//int vector_order[8];
+	//LOAD_x_ORDER(vector_order);
+	//if(boundary_type == 3) current_node = zh_pressure_edge(current_node, boundary_value, vector_order, 1);
 
 	// COLLISION - COALESCED WRITE
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);

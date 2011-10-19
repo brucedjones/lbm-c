@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	printf("Length.x:		%d\n", domain_host->length.x);
 	printf("Length.y:		%d\n", domain_host->length.y);
 	printf("Relaxation Time (Tau):	%f\n", domain_host->tau);
-	printf("\nPress the any key to continue...");
+	printf("\nPress return to continue...");
 	getchar();
 
 	output_macros(-1);
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 	// Compare and report global execution time
 	double cputime = ((double)t2-(double)t1)/(double)CLOCKS_PER_SEC;
 	printf("\n\nTotal Run Time: %fs",cputime);
-	printf("\nPress the any key to finish");
+	printf("\nPress return to finish");
 	getchar();
 
 
