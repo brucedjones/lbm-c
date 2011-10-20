@@ -252,7 +252,7 @@ void output_macros(int time)
 	// Copy data from device to host
 	cudasafe(cudaMemcpy(f_host, f_1_device, sizeof(float)*Q*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data");
 	
-	int i2d, target_x, target_y, ex[Q], ey[Q];
+	int i2d, ex[Q], ey[Q];
 	float rho = 0; float ux = 0; float uy = 0; float u = 0;
 	char fname[19];
 	FILE *file;
@@ -269,20 +269,14 @@ void output_macros(int time)
 // Write Zone Header
 	// note: nx and ny values are not in the "correct" order in the zone header, errors occur when loading the data in tecplot
 	// if the "correct" order is used
-	fprintf(file,"\nZONE T=\"3D Poiseuille Flow at time = %i\", I=%i, J=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,time);
+	fprintf(file,"\nZONE T=\"2D Poiseuille Flow at time = %i\", I=%i, J=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,time);
 // Loop over all nodes to calculate and print nodal macroscopic values to file, output some feedback data to console
 	for (int y=0;y<length.y;y++){
 		for (int x=0;x<length.x;x++){
 			// Calculate macroscopic values
 			for(int i =0; i<Q; i++)
 			{
-				// Streaming occurs prior to collision, therefore we must stream before
-				// calculation of macroscopic value's
-				target_x = x+ex[i]; target_y = y+ey[i];
-				//PERIODIC BOUNDARY
-				if(target_x>(length.x-1)) target_x = 1; if(target_x<0) target_x = length.x-1;
-				if(target_y>(length.y-1)) target_y = 1; if(target_y<0) target_y = length.y-1;
-				i2d = (target_x + target_y*length.x)+i*(domain_size);
+				i2d = (x + y*length.x)+i*(domain_size);
 				rho += lattice_host->f[i2d];
 				ux += ex[i]*lattice_host->f[i2d];
 				uy += ey[i]*lattice_host->f[i2d];
