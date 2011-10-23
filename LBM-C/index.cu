@@ -31,7 +31,7 @@
 //          \|/
 //       3---0---1
 //          /|\
-//         / | \       
+//         / | \
 //        /  |  \
 //       7   4   8
 //
@@ -44,6 +44,9 @@
 #include "d2q9_boundary.cu"
 #include "solver.cuh"
 #include "index.cuh"
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_1_device, *lattice_2_device;

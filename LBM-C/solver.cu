@@ -7,6 +7,9 @@
 #include "solver.cuh"
 #include "data_types.cuh"
 #include "d2q9_boundary.cu"
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 
 // PREFORMS ONE ITERATION OF THE LBM ON BULK NODES(NODES WHICH ARE NOT ON A DOMAIN BOUNDARY)
