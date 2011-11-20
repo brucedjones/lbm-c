@@ -221,6 +221,10 @@ void load_static_IC(void)
 // EXECUTES ALL ROUTINES REQUIRED FOR THE MODEL SET UP
 void setup(void)
 {
+	// Set cuda device to use
+	cudaSetDevice(0);
+
+	// Read domain configuration
 	FILE * input_file;
     input_file = fopen ("input.dat","r");
 	int IC_type, i2d;
