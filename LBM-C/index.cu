@@ -241,14 +241,22 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%f %f", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
-			//printf("%f %f\n", domain_host->boundary_type[i2d], domain_host->boundary_value[i2d]);
+			fscanf(input_file,"%d %f", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
 		}
 	}
 
+	for(int j = 0; j<length.y; j++)
+	{
+		for(int i = 0; i<length.x; i++)
+		{
+			i2d = i + j*length.x;
+			fscanf(input_file,"%f", &domain_host->geometry[i2d]);
+		}
+	}
 
-	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: omega_device");
-	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: omega_device");	
+	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_type_device");
+	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
+	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
 }
 
 // ERROR CHECKING FOR MEMORY ALLOCATION
