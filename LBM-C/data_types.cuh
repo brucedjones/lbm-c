@@ -24,8 +24,9 @@ typedef struct
 	float tau;
 	int2 length;
 	int b_o[5];
-	float *boundary_type;
+	int *boundary_type;
 	float *boundary_value;
+	float *geometry
 } Domain;
 
 typedef struct
@@ -35,5 +36,7 @@ typedef struct
 	float ux;
 	float uy;
 } Node;
+
+typedef Node (*boundary_condition) (Node, float);
 
 #endif
