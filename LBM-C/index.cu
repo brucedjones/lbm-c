@@ -66,9 +66,6 @@ float tau;
 int domain_size, l_b_o, maxT, saveT;
 int3 length;
 
-// Boundary condition function pointers
-__device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
-
 int main(int argc, char **argv)
 {
 	// Get available memory on graphics card before allocation
@@ -167,6 +164,7 @@ void load_and_assemble_data(void)
 	// ASSEMBLE
 	domain_host->boundary_type = boundary_type_host;
 	domain_host->boundary_value = boundary_value_host;
+	domain_host->geometry = geometry_host;
 	// LOAD
 	domain_host->tau = tau;
 	domain_host->length.x = length.x;
@@ -202,6 +200,7 @@ void load_and_assemble_data(void)
 	domain_tmp->length.y = length.y;
 	domain_tmp->boundary_type = boundary_type_device;
 	domain_tmp->boundary_value = boundary_value_device;
+	domain_tmp->geometry = geometry_device;
 	cudasafe(cudaMemcpy(domain_device, domain_tmp, sizeof(Domain),cudaMemcpyHostToDevice),"Copy Data: control_device");
 	cudasafe(cudaMemcpy(&domain_device->b_o, &domain_host->b_o, sizeof(int)*5,cudaMemcpyHostToDevice),"Copy Data: b_o");
 }
@@ -235,7 +234,7 @@ void setup(void)
     input_file = fopen ("input.dat","r");
 	int IC_type, i2d;
 	//IC_type = 0;
-	fscanf(input_file,"%d %d %f %d %d %d", &length.x, &length.y, &tau, &saveT, &maxT, &IC_type);
+	fscanf(input_file,"%d %d %f %d %d %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &IC_type);
 	//printf("%d %d %f %d %d %d\n", length.x, length.y, tau, saveT, maxT, IC_type);
 	domain_size = length.x*length.y;
 	allocate_memory_host();
@@ -247,7 +246,7 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%d %f", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
+			fscanf(input_file,"%d %f\n", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
 		}
 	}
 
@@ -256,13 +255,14 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%f", &domain_host->geometry[i2d]);
+			fscanf(input_file,"%f\n", &domain_host->geometry[i2d]);
 		}
 	}
 
 	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_type_device");
 	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
 	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
+
 }
 
 // ERROR CHECKING FOR MEMORY ALLOCATION

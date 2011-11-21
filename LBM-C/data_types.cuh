@@ -37,6 +37,7 @@ typedef struct
 	float uy;
 } Node;
 
+// Boundary condition function pointers
 typedef Node (*boundary_condition) (Node, float);
 
 #endif
