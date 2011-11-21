@@ -6,7 +6,6 @@
 #include "macros.cu"
 #include "solver.cuh"
 #include "data_types.cuh"
-#include "d2q9_boundary.cuh"
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"

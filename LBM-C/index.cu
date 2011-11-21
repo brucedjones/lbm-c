@@ -41,7 +41,6 @@
 #include <cuda_runtime_api.h>
 #include "data_types.cuh"
 #include "macros.cu"
-#include "d2q9_boundary.cu"
 #include "solver.cuh"
 #include "index.cuh"
 #include "cuda.h"
