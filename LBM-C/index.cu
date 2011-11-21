@@ -66,6 +66,9 @@ float tau;
 int domain_size, l_b_o, maxT, saveT;
 int3 length;
 
+// Boundary condition function pointers
+__device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
+
 int main(int argc, char **argv)
 {
 	// Get available memory on graphics card before allocation

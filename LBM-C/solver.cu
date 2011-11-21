@@ -3,6 +3,7 @@
 
 #define LOAD_x_ORDER(a) {a[0]=3;a[1]=6;a[2]=7;a[3]=2;a[4]=4;a[5]=1;a[6]=8;a[7]=5;}
 
+#include "index.cu"
 #include "macros.cu"
 #include "solver.cuh"
 #include "data_types.cuh"
@@ -44,14 +45,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 	// B = 0 - BOUNCEBACK
 	// 1 <= B < 2 - PARTIAL BOUNCEBACK
 	int i2d_prime = x + y*length.x;
-	float boundary_type = floor(domain->boundary_type[i2d_prime]);
-	if (boundary_type >= 1.f) 
-	{
-		B = domain->boundary_type[i2d_prime]-boundary_type;
-	} else if (boundary_type < 1.f) 
-	{
-		B = 1.f;
-	} 
+	B = domain->geometry[i2d_prime];
 
 	// STREAMING - Stream f's and calculate macroscopic values. Streaming occurs here as streaming represents
 	// an uncoalesced memory access, uncoalesced reads are less time consuming than uncoalesced
@@ -123,16 +117,9 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	// bounceback, halfway bounceback etc
 	// B = 0 - BOUNCEBACK
 	// 1 <= B < 2 - PARTIAL BOUNCEBACK
-	float boundary_type = floor(domain->boundary_type[i2d_prime]);
+	int boundary_type = domain->boundary_type[i2d_prime];
 	float boundary_value = domain->boundary_value[i2d_prime];
-	if (boundary_type >= 1) 
-	{
-		B = domain->boundary_type[i2d_prime]-boundary_type;
-	} else if (boundary_type < 1) 
-	{
-		B = 1.f;
-	} 
-	//B = 0.f;
+	B = domain->geometry[i2d_prime];
 
 	// STREAMING - UNCOALESCED READ
 	int target_x, target_y;
@@ -157,10 +144,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	current_node.uy = current_node.uy/current_node.rho;
 
 	// APPLY BOUNDARY CONDITION
-	// 2	-	Zhou/He Pressure, X- edge, uy = 0
-	// 3	-	Zhou/He Pressure, X+ edge, uy = 0
-	if(boundary_type == 2) current_node = zh_pressure_x(current_node, boundary_value);
-	if(boundary_type == 3) current_node = zh_pressure_X(current_node, boundary_value);
+	current_node = boundary_conditions[2](current_node, boundary_value);
 
 	// COLLISION - COALESCED WRITE
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
