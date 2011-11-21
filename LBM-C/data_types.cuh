@@ -26,7 +26,7 @@ typedef struct
 	int b_o[5];
 	int *boundary_type;
 	float *boundary_value;
-	float *geometry
+	float *geometry;
 } Domain;
 
 typedef struct
