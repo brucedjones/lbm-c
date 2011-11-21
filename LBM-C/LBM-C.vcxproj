@@ -86,13 +86,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="d2q9_boundary.cu" />
     <CudaCompile Include="index.cu" />
     <CudaCompile Include="macros.cu" />
     <CudaCompile Include="solver.cu" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="d2q9_boundary.cuh" />
     <None Include="data_types.cuh" />
     <None Include="index.cuh">
       <FileType>Document</FileType>
