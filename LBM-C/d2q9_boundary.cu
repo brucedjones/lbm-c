@@ -4,7 +4,7 @@
 #include "data_types.cuh"
 #include "d2q9_boundary.cuh"
 
-__device__ inline Node zh_pressure_x(Node input, float rho_boundary)
+__device__ Node zh_pressure_x(Node input, float rho_boundary)
 {
 	Node output; //= input;
 
@@ -29,7 +29,7 @@ __device__ inline Node zh_pressure_x(Node input, float rho_boundary)
 	return output;
 }
 
-__device__ inline Node zh_pressure_X(Node input, float rho_boundary)
+__device__ Node zh_pressure_X(Node input, float rho_boundary)
 {
 	Node output; //= input;
 
