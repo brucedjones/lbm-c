@@ -41,10 +41,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 	int domain_size = length.x*length.y;
 	float tau = domain->tau;
 
-	// Check and account for boundary type, take note, this refers to internal boundaries
-	// bounceback, halfway bounceback etc
-	// B = 0 - BOUNCEBACK
-	// 1 <= B < 2 - PARTIAL BOUNCEBACK
+	// Load geometry
 	int i2d_prime = x + y*length.x;
 	B = domain->geometry[i2d_prime];
 
@@ -114,12 +111,11 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 	float tau = domain->tau;
 	int i2d_prime = x + y*length.x;
 
-	// Check and account for boundary type, take note, this refers to internal boundaries
-	// bounceback, halfway bounceback etc
-	// B = 0 - BOUNCEBACK
-	// 1 <= B < 2 - PARTIAL BOUNCEBACK
+	// Load boundary condition
 	int boundary_type = domain->boundary_type[i2d_prime];
 	float boundary_value = domain->boundary_value[i2d_prime];
+
+	// Load Geometry
 	B = domain->geometry[i2d_prime];
 
 	// STREAMING - UNCOALESCED READ
