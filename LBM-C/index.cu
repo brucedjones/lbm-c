@@ -51,13 +51,15 @@
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_1_device, *lattice_2_device;
 Domain *domain_device;
-float *f_1_device, *f_2_device, *boundary_value_device, *boundary_type_device; 
+float *f_1_device, *f_2_device, *boundary_value_device, *geometry_device; 
+int *boundary_type_device;
 
 // HOST VARIABLE DECLARATION
 Lattice *lattice_host;
 Domain *domain_host;
 Output *output;
-float *f_host, *rho, *ux, *uy, *uz, *u, *boundary_value_host, *boundary_type_host;
+float *f_host, *rho, *ux, *uy, *uz, *u, *boundary_value_host, *geometry_host;
+int *boundary_type_host;
 
 // SCALAR DECLARATION (PLATFORM AGNOSTIC)
 float tau;
@@ -125,8 +127,9 @@ void allocate_memory_host(void)
 	domain_host = (Domain *)malloc(sizeof(Domain));
 	output = (Output *)malloc(sizeof(Output));
 	// ARRAYS:
-	boundary_type_host = (float *)malloc(domain_size*sizeof(float));
+	boundary_type_host = (int *)malloc(domain_size*sizeof(int));
 	boundary_value_host = (float *)malloc(domain_size*sizeof(float));
+	geometry_host = (float *)malloc(domain_size*sizeof(float));
 	f_host = (float *)malloc(domain_size*Q*sizeof(float));
 	rho = (float *)malloc(domain_size*sizeof(float));
 	ux = (float *)malloc(domain_size*sizeof(float));
@@ -145,9 +148,9 @@ void allocate_memory_device(void)
 	// ARRAYS:
 	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_1_device");
 	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_2_device");
-	cudasafe(cudaMalloc((void **)&boundary_type_device,domain_size*sizeof(float)), "Allocate Memory: bounceback_device");
-	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(float)), "Allocate Memory: bounceback_device");
-
+	cudasafe(cudaMalloc((void **)&boundary_type_device,domain_size*sizeof(int)), "Allocate Memory: boundary_type_device");
+	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(float)), "Allocate Memory: boundary_value_device");
+	cudasafe(cudaMalloc((void **)&geometry_device,domain_size*sizeof(float)), "Allocate Memory: geometry_device");
 
 }
 
