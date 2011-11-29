@@ -11,4 +11,7 @@ void Check_CUDA_Error(const char *message);
 void output_macros(int time);
 void iterate(void);
 
+float current_RMS(float *device_var, int var_size);
+float error_RMS(float *device_var, int var_size);
+
 #endif

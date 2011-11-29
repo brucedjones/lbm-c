@@ -47,6 +47,10 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+// Include THRUST libraries
+#include <thrust/device_vector.h>
+#include <thrust/transform_reduce.h>
+
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_1_device, *lattice_2_device;
 Domain *domain_device;
@@ -299,6 +303,8 @@ void output_macros(int time)
 	LOAD_EX(ex);
 	LOAD_EY(ey);
 
+	float residual = error_RMS(f_1_device,Q*domain_size);
+
 // Assemble formatted filename	
 	sprintf(fname, "results_%i.dat", time);
 // Open file
@@ -337,7 +343,7 @@ void output_macros(int time)
 			// Write to files
 			fprintf(file,"\n%i %i %f %f %f %f", x, y, rho, ux, uy, u);
 			// Output reference information to console
-			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f", time, rho, ux, uy);}
+			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %f", time, rho, ux, uy, residual);}
 			// Reset macroscopic variable containers
 			rho = 0; ux = 0; uy = 0; u = 0;
 		}
@@ -410,5 +416,46 @@ void iterate(void)
 		iterate_all_kernel<<<1,all_leftover>>>(lattice_2_device,lattice_1_device,domain_device,all_amount-all_leftover,0);
 	Check_CUDA_Error("Kernel \"iterate_all 1b\" Execution Failed!");  
 }*/
+
+// square<T> computes the square of a number f(x) -> x*x
+
+template <typename T>
+struct square
+{
+    __host__ __device__
+        T operator()(const T& x) const { 
+            return x * x;
+        }
+};
+
+float current_RMS(float *device_var, int var_size)
+{
+	// wrap raw pointer with a device_ptr for thrust compatibility
+	thrust::device_ptr<float> dev_ptr(device_var);
+
+	// setup arguments for thrust transformation to square array elements then execute plus reduction
+    square<float>        unary_op;
+    thrust::plus<float> binary_op;
+    float init = 0;
+
+	// Compute RMS value
+	float sum = thrust::transform_reduce(dev_ptr, dev_ptr+var_size, unary_op, init, binary_op);
+
+	float curr_RMS = sqrt(sum/var_size);
+
+	return curr_RMS;
+}
+
+float prev_RMS = 0;
+
+float error_RMS(float *device_var, int var_size)
+{
+	float curr_RMS = current_RMS(device_var, var_size);
+	float tmp = curr_RMS-prev_RMS;
+
+	prev_RMS = curr_RMS;
+
+	return tmp;
+}
 
 #endif
