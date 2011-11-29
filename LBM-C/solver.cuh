@@ -12,7 +12,7 @@ __global__ void iterate_all_kernel (Lattice *lattice_1, Lattice *lattice_2, Doma
 __device__ inline int2 compute_boundary_coords(int idx, Domain *domain);
 
 // BOUNDARY CONDITION DEVICE FUNCTION PROTOTYPES
-__device__ Node zh_pressure_x(Node input, float rho_boundary);
-__device__ Node zh_pressure_X(Node input, float rho_boundary);
+//__device__ Node zh_pressure_x(Node input, float rho_boundary);
+//__device__ Node zh_pressure_X(Node input, float rho_boundary);
 
 #endif

@@ -9,6 +9,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "d2q9_boundary.cu"
 
 
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
@@ -214,7 +215,7 @@ __device__ inline int2 compute_boundary_coords(int idx, Domain *domain)
 
 	return coord;
 }
-
+/*
 __device__ __noinline__ Node zh_pressure_x(Node input, float rho_boundary)
 {
 	Node output; //= input;
@@ -263,7 +264,7 @@ __device__ __noinline__ Node zh_pressure_X(Node input, float rho_boundary)
 	output.f[7] = input.f[5] + ((1.f/2.f)*(input.f[2]-input.f[4])) - ((1.f/6.f)*output.rho*output.ux);
 	
 	return output;
-}
+}*/
 /*
 __global__ void iterate_all_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain, int offset, int type)
 {
