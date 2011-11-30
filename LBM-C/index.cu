@@ -330,7 +330,7 @@ void output_macros(int time)
 			// Determine which nodes is currently being considered
 			int i2d_prime = x+y*length.x;
 			// Impose zero velocity on bounceback nodes
-			if(domain_host->boundary_type[i2d_prime] == 0)
+			if(domain_host->geometry[i2d_prime] == 1)
 			{
 				ux = 0;
 				uy = 0;
