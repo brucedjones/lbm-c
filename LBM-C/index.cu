@@ -339,7 +339,8 @@ void output_macros(int time)
 			// Write to files
 			fprintf(file,"\n%i %i %f %f %f %f", x, y, rho, ux, uy, u);
 			// Output reference information to console
-			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %f", time, rho, ux, uy, residual);}
+			//if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %e", time, rho, ux, uy, residual);}
+			if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
 			// Reset macroscopic variable containers
 			rho = 0; ux = 0; uy = 0; u = 0;
 		}
@@ -447,7 +448,7 @@ float prev_RMS = 0;
 float error_RMS(float *device_var, int var_size)
 {
 	float curr_RMS = current_RMS(device_var, var_size);
-	float tmp = curr_RMS-prev_RMS;
+	float tmp = abs(curr_RMS-prev_RMS);
 
 	prev_RMS = curr_RMS;
 
