@@ -60,15 +60,16 @@ float *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *ge
 int *boundary_type_host;
 
 // SCALAR DECLARATION (PLATFORM AGNOSTIC)
-float tau;
-int domain_size, l_b_o, maxT, saveT;
+float tau, residual;
+double tolerance;
+int domain_size, l_b_o, maxT, saveT, steadyT;
 int3 length;
-
-// ITERATION CONTROL DECLARATION
 bool store_macros = false;
 
 int main(int argc, char **argv)
 {
+	//tolerance = 0.00000001;
+
 	// Get available memory on graphics card before allocation
 	size_t freeMemory_before;
 	size_t totalMemory_before;
@@ -94,25 +95,42 @@ int main(int argc, char **argv)
 	printf("\nPress return to continue...");
 	getchar();
 
+	residual = 0;
 	output_macros(-1);
 
 	// Get current clock cycle number
 	clock_t t1=clock();
 
-	for(int i = 0; i<(maxT/2); i++)
+	for(int i = 0; i<maxT; i++)
 	{
 		iterate();
-		if(i%saveT == 0)
+		if(i%saveT == 0 && steadyT>0 && i%steadyT)
+		{
+			store_macros = true;
+			iterate();
+			output_macros(i);
+			residual = error_RMS(u_device,domain_size);
+			if(residual<tolerance) break;
+			store_macros = false;
+		} else if (i%saveT==0)
 		{
 			store_macros = true;
 			iterate();
 			output_macros(i);
 			store_macros = false;
+		} else if(steadyT>0 && i%steadyT)
+		{
+			store_macros = true;
+			iterate();
+			cudasafe(cudaMemcpy(u_host, u_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+			residual = error_RMS(u_device,domain_size);
+			if(residual<tolerance) break;
+			store_macros = false;
 		} else{
 			iterate();
 		}
 	}
-	
+
 	// Get current clock cycle number
 	clock_t t2=clock();
 	// Compare and report global execution time
@@ -242,7 +260,7 @@ void setup(void)
     input_file = fopen ("input.dat","r");
 	int IC_type, i2d;
 	//IC_type = 0;
-	fscanf(input_file,"%d %d %f %d %d %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &IC_type);
+	fscanf(input_file,"%d %d %f %d %d %d %g %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
 	//printf("%d %d %f %d %d %d\n", length.x, length.y, tau, saveT, maxT, IC_type);
 	domain_size = length.x*length.y;
 	allocate_memory_host();
@@ -303,7 +321,7 @@ void output_macros(int time)
 	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
 	cudasafe(cudaMemcpy(u_host, u_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 	
-	float residual = error_RMS(u_device,domain_size);
+
 
 // Assemble formatted filename	
 	char fname[19];
@@ -334,8 +352,8 @@ void output_macros(int time)
 			// Write to files
 			fprintf(file,"\n%i %i %f %f %f %f", x, y, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], lattice_host->u[i2d]);
 			// Output reference information to console
-			//if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %e", time, rho, ux, uy, residual);}
-			if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
+			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %e", time, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], residual);}
+			//if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
 		}
 	}
 	// Close file
