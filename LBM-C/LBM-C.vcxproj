@@ -87,15 +87,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="index.cu" />
-    <CudaCompile Include="macros.cu" />
-    <CudaCompile Include="solver.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="data_types.cuh" />
-    <None Include="index.cuh">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="solver.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,12 +1,12 @@
 #ifndef D2Q9_BOUNDARY
 #define D2Q9_BOUNDARY
 
-#define LOAD_x_ORDER(a) {a[0]=3;a[1]=6;a[2]=7;a[3]=2;a[4]=4;a[5]=1;a[6]=8;a[7]=5;}
-
+// Necessary includes
 #include "macros.cu"
-#include "data_types.cuh"
 #include "d2q9_boundary.cuh"
-#include "cuda.h"
+
+// These files are only included to remove squiggly red lines in VS2010
+#include "data_types.cuh"
 #include "cuda_runtime.h"
 
 __device__ __noinline__ Node zh_pressure_x(Node input, float rho_boundary)

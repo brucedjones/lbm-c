@@ -38,14 +38,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include <cuda_runtime_api.h>
 #include "data_types.cuh"
 #include "macros.cu"
-#include "solver.cuh"
+#include "solver.cu"
 #include "index.cuh"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
 
 // Include THRUST libraries
 #include <thrust/device_vector.h>
