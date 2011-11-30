@@ -8,7 +8,7 @@
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
 
 // PREFORMS ONE ITERATION OF THE LBM ON BULK NODES(NODES WHICH ARE NOT ON A DOMAIN BOUNDARY)
-__global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain)
+__global__ void iterate_bulk_kernel (Lattice *lattice, Domain *domain, bool store_macros)
 {
 	// Declare variables
 	float f_eq,omega[Q],cu,u_sq, collision_bgk, collision_s, B;
@@ -49,7 +49,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 		i2d = (target_x + target_y*length.x)+opp[i]*(domain_size);
 		
 		// UNCOALESCED READ
-		current_node.f[opp[i]] = lattice_1->f[i2d];
+		current_node.f[opp[i]] = lattice->f_prev[i2d];
 
 		current_node.rho += current_node.f[opp[i]];
 		current_node.ux += ex[opp[i]]*current_node.f[opp[i]];
@@ -58,6 +58,19 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 	
 	current_node.ux = current_node.ux/current_node.rho;
 	current_node.uy = current_node.uy/current_node.rho;	
+
+	// STORE MACROS IF REQUIRED
+	if (store_macros)
+	{
+		for(int i=0;i<Q;i++)
+		{
+			i2d = (x + y*length.x);
+			lattice->ux[i2d] = current_node.ux;
+			lattice->uy[i2d] = current_node.uy;
+			lattice->u[i2d] = sqrt(current_node.ux*current_node.ux+current_node.uy*current_node.uy);
+			lattice->rho[i2d] = current_node.rho;
+		}
+	} 
 
 	// COLLISION - COALESCED WRITE
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
@@ -71,12 +84,12 @@ __global__ void iterate_bulk_kernel (Lattice *lattice_1, Lattice *lattice_2, Dom
 		collision_bgk = (1.f/tau) * (current_node.f[i]-f_eq);
 		collision_s = current_node.f[opp[i]]-current_node.f[i];
 
-		lattice_2->f[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
+		lattice->f_curr[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
 	}
 }
 
 // PREFORMS ONE ITERATION OF THE LBM ON BOUNDARY NODES
-__global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2, Domain *domain, int offset)
+__global__ void iterate_boundary_kernel (Lattice *lattice, Domain *domain, int offset, bool store_macros)
 {
 	// Declare Variables
 	float f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
@@ -123,7 +136,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 		i2d = (target_x + target_y*length.x)+opp[i]*(domain_size);
 		
 		// UNCOALESCED READ
-		current_node.f[opp[i]] = lattice_1->f[i2d];
+		current_node.f[opp[i]] = lattice->f_prev[i2d];
 
 		current_node.rho += current_node.f[opp[i]];
 		current_node.ux += ex[opp[i]]*current_node.f[opp[i]];
@@ -135,6 +148,19 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 
 	// APPLY BOUNDARY CONDITION
 	if (boundary_type>0) current_node = boundary_conditions[boundary_type-1](current_node, boundary_value);
+
+	// STORE MACROS IF REQUIRED
+	if (store_macros)
+	{
+		for(int i=0;i<Q;i++)
+		{
+			i2d = (x + y*length.x);
+			lattice->ux[i2d] = current_node.ux;
+			lattice->uy[i2d] = current_node.uy;
+			lattice->u[i2d] = sqrt(current_node.ux*current_node.ux+current_node.uy*current_node.uy);
+			lattice->rho[i2d] = current_node.rho;
+		}
+	} 
 
 	// COLLISION - COALESCED WRITE
 	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
@@ -148,7 +174,7 @@ __global__ void iterate_boundary_kernel (Lattice *lattice_1, Lattice *lattice_2,
 		collision_bgk = (1.f/tau) * (current_node.f[i]-f_eq);
 		collision_s = current_node.f[opp[i]]-current_node.f[i];
 
-		lattice_2->f[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
+		lattice->f_curr[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
 	}
 }
 

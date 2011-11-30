@@ -7,17 +7,13 @@
 typedef struct 
 {
 // Population distributions
-	float *f;
-} Lattice;
-
-// Define a struct which wraps arrays for output data
-typedef struct 
-{
-	float *rho;
+	float *f_prev;
+	float *f_curr;
 	float *ux;
 	float *uy;
 	float *u;
-} Output;
+	float *rho;
+} Lattice;
 
 typedef struct
 {

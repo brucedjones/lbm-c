@@ -48,22 +48,24 @@
 #include <thrust/transform_reduce.h>
 
 // DEVICE VARIABLE DECLARATION
-Lattice *lattice_1_device, *lattice_2_device;
+Lattice *lattice_device;
 Domain *domain_device;
-float *f_1_device, *f_2_device, *boundary_value_device, *geometry_device; 
+float *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device; 
 int *boundary_type_device;
 
 // HOST VARIABLE DECLARATION
-Lattice *lattice_host;
+Lattice *lattice_host, *lattice_device_prototype;
 Domain *domain_host;
-Output *output;
-float *f_host, *rho, *ux, *uy, *uz, *u, *boundary_value_host, *geometry_host;
+float *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host;
 int *boundary_type_host;
 
 // SCALAR DECLARATION (PLATFORM AGNOSTIC)
 float tau;
 int domain_size, l_b_o, maxT, saveT;
 int3 length;
+
+// ITERATION CONTROL DECLARATION
+bool store_macros = false;
 
 int main(int argc, char **argv)
 {
@@ -100,9 +102,14 @@ int main(int argc, char **argv)
 	for(int i = 0; i<(maxT/2); i++)
 	{
 		iterate();
-		if((2*i)%(saveT) == 0)
+		if(i%saveT == 0)
 		{
-			output_macros(2*i);
+			store_macros = true;
+			iterate();
+			output_macros(i);
+			store_macros = false;
+		} else{
+			iterate();
 		}
 	}
 	
@@ -124,16 +131,15 @@ void allocate_memory_host(void)
 	// STRUCTS:
 	lattice_host = (Lattice *)malloc(sizeof(Lattice));
 	domain_host = (Domain *)malloc(sizeof(Domain));
-	output = (Output *)malloc(sizeof(Output));
 	// ARRAYS:
 	boundary_type_host = (int *)malloc(domain_size*sizeof(int));
 	boundary_value_host = (float *)malloc(domain_size*sizeof(float));
 	geometry_host = (float *)malloc(domain_size*sizeof(float));
 	f_host = (float *)malloc(domain_size*Q*sizeof(float));
-	rho = (float *)malloc(domain_size*sizeof(float));
-	ux = (float *)malloc(domain_size*sizeof(float));
-	uy = (float *)malloc(domain_size*sizeof(float));
-	u = (float *)malloc(domain_size*sizeof(float));
+	rho_host = (float *)malloc(domain_size*sizeof(float));
+	ux_host = (float *)malloc(domain_size*sizeof(float));
+	uy_host = (float *)malloc(domain_size*sizeof(float));
+	u_host = (float *)malloc(domain_size*sizeof(float));
 }
 
 // ALLOCATES MEMORY ON THE DEVICE
@@ -141,12 +147,15 @@ void allocate_memory_device(void)
 {
 	// ALLOCATE ARRAY AND STRUCT MEMORY ON DEVICE
 	// STRUCTS:
-	cudasafe(cudaMalloc((void **)&lattice_1_device,sizeof(Lattice)), "Allocate Memory: lattice_1_device");
-	cudasafe(cudaMalloc((void **)&lattice_2_device,sizeof(Lattice)), "Allocate Memory: lattice_2_device");
+	cudasafe(cudaMalloc((void **)&lattice_device,sizeof(Lattice)), "Allocate Memory: lattice_device");
 	cudasafe(cudaMalloc((void **)&domain_device,sizeof(Domain)), "Allocate Memory: control_device");
 	// ARRAYS:
 	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_1_device");
 	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_2_device");
+	cudasafe(cudaMalloc((void **)&rho_device,domain_size*Q*sizeof(float)), "Allocate Memory: rho_device");
+	cudasafe(cudaMalloc((void **)&ux_device,domain_size*Q*sizeof(float)), "Allocate Memory: ux_device");
+	cudasafe(cudaMalloc((void **)&uy_device,domain_size*Q*sizeof(float)), "Allocate Memory: uy_device");
+	cudasafe(cudaMalloc((void **)&u_device,domain_size*Q*sizeof(float)), "Allocate Memory: u_device");
 	cudasafe(cudaMalloc((void **)&boundary_type_device,domain_size*sizeof(int)), "Allocate Memory: boundary_type_device");
 	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(float)), "Allocate Memory: boundary_value_device");
 	cudasafe(cudaMalloc((void **)&geometry_device,domain_size*sizeof(float)), "Allocate Memory: geometry_device");
@@ -157,7 +166,11 @@ void allocate_memory_device(void)
 void load_and_assemble_data(void)
 {
 	// ASSEMBLE STRUCT ON HOST: Lattice
-	lattice_host->f = f_host;
+	lattice_host->f_curr = f_host;
+	lattice_host->rho = rho_host;
+	lattice_host->ux = ux_host;
+	lattice_host->uy = uy_host;
+	lattice_host->u = u_host;
 
 	// ASSEMBLE AND LOAD STRUCT ON HOST: Control
 	// ASSEMBLE
@@ -179,18 +192,15 @@ void load_and_assemble_data(void)
 	domain_host->b_o[4] = domain_host->b_o[3]+4;
 	l_b_o = domain_host->b_o[4];
 
-	// ASSEMBLE STRUCT ON HOST: Output
-	output->rho = rho;
-	output->ux = ux;
-	output->uy = uy;
-	output->u = u;
-
 	// ASSEMBLE STRUCT ON DEVICE: Lattice
-	Lattice *lattice_tmp = (Lattice *)malloc(sizeof(Lattice));
-	lattice_tmp->f = f_1_device;
-	cudasafe(cudaMemcpy(lattice_1_device, lattice_tmp, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: lattice_1_device");
-	lattice_tmp->f = f_2_device;
-	cudasafe(cudaMemcpy(lattice_2_device, lattice_tmp, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: lattice_2_device");
+	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
+	lattice_device_prototype->f_curr = f_1_device;
+	lattice_device_prototype->f_prev = f_2_device;
+	lattice_device_prototype->rho = rho_device;
+	lattice_device_prototype->ux = ux_device;
+	lattice_device_prototype->uy = uy_device;
+	lattice_device_prototype->u = u_device;
+	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: lattice_device");
 
 	// ASSEMBLE AND LOAD STRUCT ON DEVICE: Control
 	Domain *domain_tmp = (Domain *)malloc(sizeof(Domain));
@@ -215,11 +225,10 @@ void load_static_IC(void)
 		for(int index=0;index<(domain_size);index++)
 		{
 			index_i = index+i*(domain_size);
-			lattice_host->f[index_i] = 1.f*omega[i];
+			lattice_host->f_curr[index_i] = 1.f*omega[i];
 		}
 	}
-	cudasafe(cudaMemcpy(f_1_device, f_host, sizeof(float)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition 1");
-	cudasafe(cudaMemcpy(f_2_device, f_host, sizeof(float)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition 2");
+	cudasafe(cudaMemcpy(f_2_device, f_host, sizeof(float)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition");
 }
 
 // EXECUTES ALL ROUTINES REQUIRED FOR THE MODEL SET UP
@@ -289,19 +298,16 @@ void Check_CUDA_Error(const char *message)
 void output_macros(int time)
 {
 	// Copy data from device to host
-	cudasafe(cudaMemcpy(f_host, f_1_device, sizeof(float)*Q*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data");
+	cudasafe(cudaMemcpy(rho_host, rho_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
+	cudasafe(cudaMemcpy(ux_host, ux_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
+	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
+	cudasafe(cudaMemcpy(u_host, u_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 	
-	int i2d, ex[Q], ey[Q];
-	float rho = 0; float ux = 0; float uy = 0; float u = 0;
-	char fname[19];
-	FILE *file;
-
-	LOAD_EX(ex);
-	LOAD_EY(ey);
-
-	float residual = error_RMS(f_1_device,Q*domain_size);
+	float residual = error_RMS(u_device,domain_size);
 
 // Assemble formatted filename	
+	char fname[19];
+	FILE *file;
 	sprintf(fname, "results_%i.dat", time);
 // Open file
 	file = fopen(fname,"w");
@@ -312,37 +318,24 @@ void output_macros(int time)
 	// if the "correct" order is used
 	fprintf(file,"\nZONE T=\"2D Poiseuille Flow at time = %i\", I=%i, J=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,time);
 // Loop over all nodes to calculate and print nodal macroscopic values to file, output some feedback data to console
+	int i2d;
 	for (int y=0;y<length.y;y++){
 		for (int x=0;x<length.x;x++){
-			// Calculate macroscopic values
-			for(int i =0; i<Q; i++)
-			{
-				i2d = (x + y*length.x)+i*(domain_size);
-				rho += lattice_host->f[i2d];
-				ux += ex[i]*lattice_host->f[i2d];
-				uy += ey[i]*lattice_host->f[i2d];
-			}
+			
+			i2d = x+y*length.x;
 
-			ux = ux/rho;
-			uy = uy/rho;
-			u = sqrt(ux*ux+uy*uy);
-
-			// Determine which nodes is currently being considered
-			int i2d_prime = x+y*length.x;
 			// Impose zero velocity on bounceback nodes
-			if(domain_host->geometry[i2d_prime] == 1)
+			if(domain_host->geometry[i2d] == 1)
 			{
-				ux = 0;
-				uy = 0;
-				u = 0;
+				lattice_host->ux[i2d] = 0;
+				lattice_host->uy[i2d] = 0;
+				lattice_host->u[i2d] = 0;
 			}
 			// Write to files
-			fprintf(file,"\n%i %i %f %f %f %f", x, y, rho, ux, uy, u);
+			fprintf(file,"\n%i %i %f %f %f %f", x, y, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], lattice_host->u[i2d]);
 			// Output reference information to console
 			//if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %e", time, rho, ux, uy, residual);}
 			if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
-			// Reset macroscopic variable containers
-			rho = 0; ux = 0; uy = 0; u = 0;
 		}
 	}
 	// Close file
@@ -366,22 +359,21 @@ void iterate(void)
 	int boundary_leftover=(boundary_amount%BLOCK_SIZE);
 
 	// ITERATE ONCE
-	iterate_bulk_kernel<<<Dg_bulk, Db_bulk>>>(lattice_1_device,lattice_2_device,domain_device);
+	iterate_bulk_kernel<<<Dg_bulk, Db_bulk>>>(lattice_device, domain_device, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
-	iterate_boundary_kernel<<<boundary_grid,BLOCK_SIZE>>>(lattice_1_device,lattice_2_device,domain_device,0);
+	iterate_boundary_kernel<<<boundary_grid,BLOCK_SIZE>>>(lattice_device,domain_device,0, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_boundary 1a\" Execution Failed!");  
 	if(boundary_leftover)
-		iterate_boundary_kernel<<<1,boundary_leftover>>>(lattice_1_device,lattice_2_device,domain_device,boundary_amount-boundary_leftover);
+		iterate_boundary_kernel<<<1,boundary_leftover>>>(lattice_device,domain_device,boundary_amount-boundary_leftover, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_boundary 1b\" Execution Failed!");
 
-	// SWAP LATTICES AND ITERATE AGAIN
-	iterate_bulk_kernel<<<Dg_bulk, Db_bulk>>>(lattice_2_device,lattice_1_device,domain_device);
-	Check_CUDA_Error("Kernel \"iterate_bulk 2\" Execution Failed!");  
-	iterate_boundary_kernel<<<boundary_grid,BLOCK_SIZE>>>(lattice_2_device,lattice_1_device,domain_device,0);
-	Check_CUDA_Error("Kernel \"iterate_boundary 1a\" Execution Failed!");  
-	if(boundary_leftover)
-		iterate_boundary_kernel<<<1,boundary_leftover>>>(lattice_2_device,lattice_1_device,domain_device,boundary_amount-boundary_leftover);
-	Check_CUDA_Error("Kernel \"iterate_boundary 1b\" Execution Failed!");  
+	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
+	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers");
+	float *tmp_1 = lattice_device_prototype->f_prev;
+	float *tmp_2 = lattice_device_prototype->f_curr;
+	lattice_device_prototype->f_curr = tmp_1;
+	lattice_device_prototype->f_prev = tmp_2;
+	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers");
 }
 /*
 void iterate(void)
