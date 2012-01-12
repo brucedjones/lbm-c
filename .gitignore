@@ -1,0 +1,18 @@
+# LBM-C FILE TYPES
+*.dat
+
+# FOLDERS
+Debug/
+Release/
+ipch/
+LBM-C/Debug
+LBM-C/Release
+
+# FILE TYPES
+*.dll
+*.ilk
+*.pdb
+*.opensdf
+*.sdf
+*.suo
+*.user
