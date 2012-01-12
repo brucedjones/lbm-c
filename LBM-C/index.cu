@@ -50,17 +50,17 @@
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_device;
 Domain *domain_device;
-float *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device; 
+double *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device; 
 int *boundary_type_device;
 
 // HOST VARIABLE DECLARATION
 Lattice *lattice_host, *lattice_device_prototype;
 Domain *domain_host;
-float *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host;
+double *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host;
 int *boundary_type_host;
 
 // SCALAR DECLARATION (PLATFORM AGNOSTIC)
-float tau, residual;
+double tau, residual;
 double tolerance;
 int domain_size, l_b_o, maxT, saveT, steadyT;
 int3 length;
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 		{
 			store_macros = true;
 			iterate();
-			cudasafe(cudaMemcpy(u_host, u_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+			cudasafe(cudaMemcpy(u_host, u_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 			residual = error_RMS(u_device,domain_size);
 			if(residual<tolerance) break;
 			store_macros = false;
@@ -151,13 +151,13 @@ void allocate_memory_host(void)
 	domain_host = (Domain *)malloc(sizeof(Domain));
 	// ARRAYS:
 	boundary_type_host = (int *)malloc(domain_size*sizeof(int));
-	boundary_value_host = (float *)malloc(domain_size*sizeof(float));
-	geometry_host = (float *)malloc(domain_size*sizeof(float));
-	f_host = (float *)malloc(domain_size*Q*sizeof(float));
-	rho_host = (float *)malloc(domain_size*sizeof(float));
-	ux_host = (float *)malloc(domain_size*sizeof(float));
-	uy_host = (float *)malloc(domain_size*sizeof(float));
-	u_host = (float *)malloc(domain_size*sizeof(float));
+	boundary_value_host = (double *)malloc(domain_size*sizeof(double));
+	geometry_host = (double *)malloc(domain_size*sizeof(double));
+	f_host = (double *)malloc(domain_size*Q*sizeof(double));
+	rho_host = (double *)malloc(domain_size*sizeof(double));
+	ux_host = (double *)malloc(domain_size*sizeof(double));
+	uy_host = (double *)malloc(domain_size*sizeof(double));
+	u_host = (double *)malloc(domain_size*sizeof(double));
 }
 
 // ALLOCATES MEMORY ON THE DEVICE
@@ -168,15 +168,15 @@ void allocate_memory_device(void)
 	cudasafe(cudaMalloc((void **)&lattice_device,sizeof(Lattice)), "Allocate Memory: lattice_device");
 	cudasafe(cudaMalloc((void **)&domain_device,sizeof(Domain)), "Allocate Memory: control_device");
 	// ARRAYS:
-	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_1_device");
-	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(float)), "Allocate Memory: f_2_device");
-	cudasafe(cudaMalloc((void **)&rho_device,domain_size*Q*sizeof(float)), "Allocate Memory: rho_device");
-	cudasafe(cudaMalloc((void **)&ux_device,domain_size*Q*sizeof(float)), "Allocate Memory: ux_device");
-	cudasafe(cudaMalloc((void **)&uy_device,domain_size*Q*sizeof(float)), "Allocate Memory: uy_device");
-	cudasafe(cudaMalloc((void **)&u_device,domain_size*Q*sizeof(float)), "Allocate Memory: u_device");
+	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_1_device");
+	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_2_device");
+	cudasafe(cudaMalloc((void **)&rho_device,domain_size*Q*sizeof(double)), "Allocate Memory: rho_device");
+	cudasafe(cudaMalloc((void **)&ux_device,domain_size*Q*sizeof(double)), "Allocate Memory: ux_device");
+	cudasafe(cudaMalloc((void **)&uy_device,domain_size*Q*sizeof(double)), "Allocate Memory: uy_device");
+	cudasafe(cudaMalloc((void **)&u_device,domain_size*Q*sizeof(double)), "Allocate Memory: u_device");
 	cudasafe(cudaMalloc((void **)&boundary_type_device,domain_size*sizeof(int)), "Allocate Memory: boundary_type_device");
-	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(float)), "Allocate Memory: boundary_value_device");
-	cudasafe(cudaMalloc((void **)&geometry_device,domain_size*sizeof(float)), "Allocate Memory: geometry_device");
+	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(double)), "Allocate Memory: boundary_value_device");
+	cudasafe(cudaMalloc((void **)&geometry_device,domain_size*sizeof(double)), "Allocate Memory: geometry_device");
 
 }
 
@@ -236,7 +236,7 @@ void load_and_assemble_data(void)
 void load_static_IC(void)
 {
 	int index_i;
-	float omega[Q];
+	double omega[Q];
 	LOAD_OMEGA(omega);
 	for(int i=0;i<Q;i++)
 	{
@@ -246,7 +246,7 @@ void load_static_IC(void)
 			lattice_host->f_curr[index_i] = 1.f*omega[i];
 		}
 	}
-	cudasafe(cudaMemcpy(f_2_device, f_host, sizeof(float)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition");
+	cudasafe(cudaMemcpy(f_2_device, f_host, sizeof(double)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition");
 }
 
 // EXECUTES ALL ROUTINES REQUIRED FOR THE MODEL SET UP
@@ -286,8 +286,8 @@ void setup(void)
 	}
 
 	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_type_device");
-	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
-	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(float)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
+	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
+	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
 
 }
 
@@ -316,10 +316,10 @@ void Check_CUDA_Error(const char *message)
 void output_macros(int time)
 {
 	// Copy data from device to host
-	cudasafe(cudaMemcpy(rho_host, rho_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
-	cudasafe(cudaMemcpy(ux_host, ux_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
-	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
-	cudasafe(cudaMemcpy(u_host, u_device, sizeof(float)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+	cudasafe(cudaMemcpy(rho_host, rho_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
+	cudasafe(cudaMemcpy(ux_host, ux_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
+	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
+	cudasafe(cudaMemcpy(u_host, u_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 	
 
 
@@ -387,8 +387,8 @@ void iterate(void)
 
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
 	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers");
-	float *tmp_1 = lattice_device_prototype->f_prev;
-	float *tmp_2 = lattice_device_prototype->f_curr;
+	double *tmp_1 = lattice_device_prototype->f_prev;
+	double *tmp_2 = lattice_device_prototype->f_curr;
 	lattice_device_prototype->f_curr = tmp_1;
 	lattice_device_prototype->f_prev = tmp_2;
 	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers");
@@ -435,30 +435,30 @@ struct square
         }
 };
 
-float current_RMS(float *device_var, int var_size)
+double current_RMS(double *device_var, int var_size)
 {
 	// wrap raw pointer with a device_ptr for thrust compatibility
-	thrust::device_ptr<float> dev_ptr(device_var);
+	thrust::device_ptr<double> dev_ptr(device_var);
 
 	// setup arguments for thrust transformation to square array elements then execute plus reduction
-    square<float>        unary_op;
-    thrust::plus<float> binary_op;
-    float init = 0;
+    square<double>        unary_op;
+    thrust::plus<double> binary_op;
+    double init = 0;
 
 	// Compute RMS value
-	float sum = thrust::transform_reduce(dev_ptr, dev_ptr+var_size, unary_op, init, binary_op);
+	double sum = thrust::transform_reduce(dev_ptr, dev_ptr+var_size, unary_op, init, binary_op);
 
-	float curr_RMS = sqrt(sum/var_size);
+	double curr_RMS = sqrt(sum/var_size);
 
 	return curr_RMS;
 }
 
-float prev_RMS = 0;
+double prev_RMS = 0;
 
-float error_RMS(float *device_var, int var_size)
+double error_RMS(double *device_var, int var_size)
 {
-	float curr_RMS = current_RMS(device_var, var_size);
-	float tmp = abs(curr_RMS-prev_RMS);
+	double curr_RMS = current_RMS(device_var, var_size);
+	double tmp = abs(curr_RMS-prev_RMS);
 
 	prev_RMS = curr_RMS;
 

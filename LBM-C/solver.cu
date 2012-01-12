@@ -11,7 +11,7 @@ __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_press
 __global__ void iterate_bulk_kernel (Lattice *lattice, Domain *domain, bool store_macros)
 {
 	// Declare variables
-	float f_eq,omega[Q],cu,u_sq, collision_bgk, collision_s, B;
+	double f_eq,omega[Q],cu,u_sq, collision_bgk, collision_s, B;
 	int i2d, ex[Q], ey[Q], opp[Q];
 	int2 length;
 	Node current_node;
@@ -32,7 +32,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice, Domain *domain, bool stor
 	length.x = domain->length.x;
 	length.y = domain->length.y;
 	int domain_size = length.x*length.y;
-	float tau = domain->tau;
+	double tau = domain->tau;
 
 	// Load geometry
 	int i2d_prime = x + y*length.x;
@@ -92,7 +92,7 @@ __global__ void iterate_bulk_kernel (Lattice *lattice, Domain *domain, bool stor
 __global__ void iterate_boundary_kernel (Lattice *lattice, Domain *domain, int offset, bool store_macros)
 {
 	// Declare Variables
-	float f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
+	double f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
 	int i2d, ex[Q], ey[Q], opp[Q];
 	int2 length;
 	Node current_node;
@@ -114,12 +114,12 @@ __global__ void iterate_boundary_kernel (Lattice *lattice, Domain *domain, int o
 	length.x = domain->length.x;
 	length.y = domain->length.y;
 	int domain_size = length.x*length.y;
-	float tau = domain->tau;
+	double tau = domain->tau;
 	int i2d_prime = x + y*length.x;
 
 	// Load boundary condition
 	int boundary_type = domain->boundary_type[i2d_prime];
-	float boundary_value = domain->boundary_value[i2d_prime];
+	double boundary_value = domain->boundary_value[i2d_prime];
 
 	// Load Geometry
 	B = domain->geometry[i2d_prime];

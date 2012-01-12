@@ -7,33 +7,33 @@
 typedef struct 
 {
 // Population distributions
-	float *f_prev;
-	float *f_curr;
-	float *ux;
-	float *uy;
-	float *u;
-	float *rho;
+	double *f_prev;
+	double *f_curr;
+	double *ux;
+	double *uy;
+	double *u;
+	double *rho;
 } Lattice;
 
 typedef struct
 {
-	float tau;
+	double tau;
 	int2 length;
 	int b_o[5];
 	int *boundary_type;
-	float *boundary_value;
-	float *geometry;
+	double *boundary_value;
+	double *geometry;
 } Domain;
 
 typedef struct
 {
-	float f[Q];
-	float rho;
-	float ux;
-	float uy;
+	double f[Q];
+	double rho;
+	double ux;
+	double uy;
 } Node;
 
 // Boundary condition function pointers
-typedef Node (*boundary_condition) (Node, float);
+typedef Node (*boundary_condition) (Node, double);
 
 #endif
