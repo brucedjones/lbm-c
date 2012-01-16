@@ -271,7 +271,7 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%d %f\n", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
+			fscanf(input_file,"%d %lf\n", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
 		}
 	}
 
@@ -320,8 +320,6 @@ void output_macros(int time)
 	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
 	cudasafe(cudaMemcpy(u_host, u_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 	
-
-
 // Assemble formatted filename	
 	char fname[19];
 	FILE *file;
@@ -349,9 +347,9 @@ void output_macros(int time)
 				lattice_host->u[i2d] = 0;
 			}
 			// Write to files
-			fprintf(file,"\n%i %i %f %f %f %f", x, y, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], lattice_host->u[i2d]);
+			fprintf(file,"\n%i %i %lf %lf %lf %lf", x, y, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], lattice_host->u[i2d]);
 			// Output reference information to console
-			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %f; uX = %f; uY = %f, resid = %e", time, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], residual);}
+			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %lf; uX = %lf; uY = %lf, resid = %g", time, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], residual);}
 			//if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
 		}
 	}
