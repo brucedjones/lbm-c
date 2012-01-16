@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
 	for(int i = 0; i<maxT; i++)
 	{
-		iterate();
+		//iterate();
 		if(i%saveT == 0 && steadyT>0 && i%steadyT)
 		{
 			store_macros = true;
