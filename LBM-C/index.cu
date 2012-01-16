@@ -103,7 +103,6 @@ int main(int argc, char **argv)
 
 	for(int i = 0; i<maxT; i++)
 	{
-		//iterate();
 		if(i%saveT == 0 && steadyT>0 && i%steadyT)
 		{
 			store_macros = true;
@@ -126,7 +125,8 @@ int main(int argc, char **argv)
 			residual = error_RMS(u_device,domain_size);
 			if(residual<tolerance) break;
 			store_macros = false;
-		} else{
+		} else
+		{
 			iterate();
 		}
 	}

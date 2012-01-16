@@ -149,14 +149,11 @@ __global__ void iterate_boundary_kernel (Lattice *lattice, Domain *domain, int o
 	// STORE MACROS IF REQUIRED
 	if (store_macros)
 	{
-		for(int i=0;i<Q;i++)
-		{
 			i2d = (x + y*length.x);
 			lattice->ux[i2d] = current_node.ux;
 			lattice->uy[i2d] = current_node.uy;
 			lattice->u[i2d] = sqrt(current_node.ux*current_node.ux+current_node.uy*current_node.uy);
 			lattice->rho[i2d] = current_node.rho;
-		}
 	} 
 
 	// COLLISION - COALESCED WRITE
