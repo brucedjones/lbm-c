@@ -260,8 +260,7 @@ void setup(void)
     input_file = fopen ("input.dat","r");
 	int IC_type, i2d;
 	//IC_type = 0;
-	fscanf(input_file,"%d %d %f %d %d %d %g %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
-	//printf("%d %d %f %d %d %d\n", length.x, length.y, tau, saveT, maxT, IC_type);
+	fscanf(input_file,"%d %d %lf %d %d %d %lf %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
 	domain_size = length.x*length.y;
 	allocate_memory_host();
 	allocate_memory_device();
