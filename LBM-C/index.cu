@@ -243,10 +243,11 @@ void load_static_IC(void)
 		for(int index=0;index<(domain_size);index++)
 		{
 			index_i = index+i*(domain_size);
-			lattice_host->f_curr[index_i] = 1.f*omega[i];
+			lattice_host->f_curr[index_i] = 1.0*omega[i];
 		}
 	}
 	cudasafe(cudaMemcpy(f_2_device, f_host, sizeof(double)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition");
+	cudasafe(cudaMemcpy(f_1_device, f_host, sizeof(double)*Q*domain_size,cudaMemcpyHostToDevice),"Copy Data: Initial Condition");
 }
 
 // EXECUTES ALL ROUTINES REQUIRED FOR THE MODEL SET UP
@@ -280,7 +281,7 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%f\n", &domain_host->geometry[i2d]);
+			fscanf(input_file,"%lf\n", &domain_host->geometry[i2d]);
 		}
 	}
 

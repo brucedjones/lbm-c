@@ -70,15 +70,15 @@ __global__ void iterate_bulk_kernel (Lattice *lattice, Domain *domain, bool stor
 	} 
 
 	// COLLISION - COALESCED WRITE
-	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
+	u_sq = 1.5*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
 
-		cu = 3*(ex[i]*current_node.ux+ey[i]*current_node.uy);
-		f_eq = current_node.rho*omega[i]*(1.f+cu+(0.5f*cu*cu)-u_sq);
+		cu = 3.0*(ex[i]*current_node.ux+ey[i]*current_node.uy);
+		f_eq = current_node.rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
 
-		collision_bgk = (1.f/tau) * (current_node.f[i]-f_eq);
+		collision_bgk = (1.0/tau) * (current_node.f[i]-f_eq);
 		collision_s = current_node.f[opp[i]]-current_node.f[i];
 
 		lattice->f_curr[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
@@ -157,15 +157,15 @@ __global__ void iterate_boundary_kernel (Lattice *lattice, Domain *domain, int o
 	} 
 
 	// COLLISION - COALESCED WRITE
-	u_sq = 1.5f*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
+	u_sq = 1.5*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
 	for(int i=0;i<Q;i++)
 	{
 		i2d = (x + y*length.x)+i*(domain_size);
 
-		cu = 3*(ex[i]*current_node.ux+ey[i]*current_node.uy);
-		f_eq = current_node.rho*omega[i]*(1.f+cu+(0.5f*cu*cu)-u_sq);
+		cu = 3.0*(ex[i]*current_node.ux+ey[i]*current_node.uy);
+		f_eq = current_node.rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
 
-		collision_bgk = (1.f/tau) * (current_node.f[i]-f_eq);
+		collision_bgk = (1.0/tau) * (current_node.f[i]-f_eq);
 		collision_s = current_node.f[opp[i]]-current_node.f[i];
 
 		lattice->f_curr[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
