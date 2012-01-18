@@ -363,7 +363,7 @@ void output_macros(int time)
 //
 // Note:	The "all" kernel operates cleanly on both bulk and boundary nodes and may be used
 //			instead, though its use is inefficient.
-/*void iterate(void)
+void iterate(void)
 {
 	// GRID AND BLOCK DEFINITIONS CAN BE CALCULATED BEFORE ITERATE
 	// DEFINE BULK GRID AND BLOCK
@@ -390,20 +390,20 @@ void output_macros(int time)
 	lattice_device_prototype->f_curr = tmp_1;
 	lattice_device_prototype->f_prev = tmp_2;
 	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers");
-}*/
+}
 
-void iterate(void)
+/*void iterate(void)
 {
 	// GRID AND BLOCK DEFINITIONS CAN BE CALCULATED BEFORE ITERATE
 	// DEFINE BULK GRID AND BLOCK
 	int3 threads;
-	threads.x = (int)ceilf((float)length.x/(float)NUM_THREADS_DIM);
-	threads.y = (int)ceilf((float)length.y/(float)NUM_THREADS_DIM);
+	threads.x = (int)ceilf((float)length.x/(float)NUM_THREADS_DIM_X);
+	threads.y = (int)ceilf((float)length.y/(float)NUM_THREADS_DIM_Y);
 	threads.z = 1;
 
 	int3 blocks;
-	blocks.x = (int)ceilf((float)length.x/(float)threads.x);
-	blocks.y = (int)ceilf((float)length.y/(float)threads.y);
+	blocks.x = NUM_THREADS_DIM_X;
+	blocks.y = NUM_THREADS_DIM_Y;
 	blocks.z = 1;
 
 	dim3 grid_dim = dim3(threads.x,threads.y,threads.z);
@@ -415,13 +415,8 @@ void iterate(void)
 	int boundary_leftover=(boundary_amount%BLOCK_SIZE);
 
 	// ITERATE ONCE
-	iterate_bulk_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros);
+	iterate_all_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
-	iterate_boundary_kernel<<<boundary_grid,BLOCK_SIZE>>>(lattice_device,domain_device,0, store_macros);
-	Check_CUDA_Error("Kernel \"iterate_boundary 1a\" Execution Failed!");  
-	if(boundary_leftover)
-		iterate_boundary_kernel<<<1,boundary_leftover>>>(lattice_device,domain_device,boundary_amount-boundary_leftover, store_macros);
-	Check_CUDA_Error("Kernel \"iterate_boundary 1b\" Execution Failed!");
 
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
 	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers");
@@ -430,7 +425,7 @@ void iterate(void)
 	lattice_device_prototype->f_curr = tmp_1;
 	lattice_device_prototype->f_prev = tmp_2;
 	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers");
-}
+}*/
 
 // square<T> computes the square of a number f(x) -> x*x
 

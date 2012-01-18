@@ -257,7 +257,7 @@ __global__ void iterate_all_kernel (Lattice *lattice, Domain *domain, bool store
 	double tau = domain->tau;
 	int i2d_prime = x + y*length.x;
 
-	if(x<length.x-1 && y<length.y-1)
+	if(x<length.x && y<length.y)
 	{
 	
 		// Load boundary condition
