@@ -49,22 +49,24 @@
 
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_device;
-Domain *domain_device;
-double *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device; 
+DomainArray *domain_arrays_device;
+double *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device, *force_device; 
 int *boundary_type_device;
 
 // HOST VARIABLE DECLARATION
 Lattice *lattice_host, *lattice_device_prototype;
-Domain *domain_host;
-double *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host;
+DomainArray *domain_arrays_host;
+DomainConstant domain_constants;
+double *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host, *force_host;
 int *boundary_type_host;
 
 // SCALAR DECLARATION (PLATFORM AGNOSTIC)
 double tau, residual;
 double tolerance;
-int domain_size, l_b_o, maxT, saveT, steadyT;
+int domain_size, maxT, saveT, steadyT, collision_type;
 int3 length;
 bool store_macros = false;
+bool forcing = false;
 
 int main(int argc, char **argv)
 {
@@ -89,9 +91,9 @@ int main(int argc, char **argv)
 	printf("Memory Used:		%luMb\n\n", (unsigned long) (freeMemory_before-freeMemory_after) / 1024 / 1024);
 
 	// Report domain configuration
-	printf("Length.x:		%d\n", domain_host->length.x);
-	printf("Length.y:		%d\n", domain_host->length.y);
-	printf("Relaxation Time (Tau):	%f\n", domain_host->tau);
+	printf("Length.x:		%d\n", domain_arrays_host->length.x);
+	printf("Length.y:		%d\n", domain_arrays_host->length.y);
+	printf("Relaxation Time (Tau):	%f\n", domain_arrays_host->tau);
 	printf("\nPress return to continue...");
 	getchar();
 
@@ -148,11 +150,12 @@ void allocate_memory_host(void)
 	// ALLOCATE ARRAY AND STRUCT MEMORY ON HOST
 	// STRUCTS:
 	lattice_host = (Lattice *)malloc(sizeof(Lattice));
-	domain_host = (Domain *)malloc(sizeof(Domain));
+	domain_arrays_host = (DomainArray *)malloc(sizeof(DomainArray));
 	// ARRAYS:
 	boundary_type_host = (int *)malloc(domain_size*sizeof(int));
 	boundary_value_host = (double *)malloc(domain_size*sizeof(double));
 	geometry_host = (double *)malloc(domain_size*sizeof(double));
+	force_host = (double *)malloc(domain_size*DIM*sizeof(double));
 	f_host = (double *)malloc(domain_size*Q*sizeof(double));
 	rho_host = (double *)malloc(domain_size*sizeof(double));
 	ux_host = (double *)malloc(domain_size*sizeof(double));
@@ -166,7 +169,7 @@ void allocate_memory_device(void)
 	// ALLOCATE ARRAY AND STRUCT MEMORY ON DEVICE
 	// STRUCTS:
 	cudasafe(cudaMalloc((void **)&lattice_device,sizeof(Lattice)), "Allocate Memory: lattice_device");
-	cudasafe(cudaMalloc((void **)&domain_device,sizeof(Domain)), "Allocate Memory: control_device");
+	cudasafe(cudaMalloc((void **)&domain_arrays_device,sizeof(DomainArray)), "Allocate Memory: control_device");
 	// ARRAYS:
 	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_1_device");
 	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_2_device");
@@ -177,6 +180,7 @@ void allocate_memory_device(void)
 	cudasafe(cudaMalloc((void **)&boundary_type_device,domain_size*sizeof(int)), "Allocate Memory: boundary_type_device");
 	cudasafe(cudaMalloc((void **)&boundary_value_device,domain_size*sizeof(double)), "Allocate Memory: boundary_value_device");
 	cudasafe(cudaMalloc((void **)&geometry_device,domain_size*sizeof(double)), "Allocate Memory: geometry_device");
+	cudasafe(cudaMalloc((void **)&force_device,domain_size*DIM*sizeof(double)), "Allocate Memory: force_device");
 
 }
 
@@ -190,25 +194,16 @@ void load_and_assemble_data(void)
 	lattice_host->uy = uy_host;
 	lattice_host->u = u_host;
 
-	// ASSEMBLE AND LOAD STRUCT ON HOST: Control
-	// ASSEMBLE
-	domain_host->boundary_type = boundary_type_host;
-	domain_host->boundary_value = boundary_value_host;
-	domain_host->geometry = geometry_host;
-	// LOAD
-	domain_host->tau = tau;
-	domain_host->length.x = length.x;
-	domain_host->length.y = length.y;
+	// ASSEMBLE STRUCT ON HOST: DomainArrays
+	domain_arrays_host->boundary_type = boundary_type_host;
+	domain_arrays_host->boundary_value = boundary_value_host;
+	domain_arrays_host->geometry = geometry_host;
 	
-	// Boundary nodes are treated as chains of face nodes, vertex nodes and corner nodes,
-	// the length of each of these chains is a function of domain dimensions and is calculated
-	// here.
-	domain_host->b_o[0] = (length.y-2); // X-
-	domain_host->b_o[1] = domain_host->b_o[0]+(length.y-2); // X+
-	domain_host->b_o[2] = domain_host->b_o[1]+(length.x-2); // Y-
-	domain_host->b_o[3] = domain_host->b_o[2]+(length.x-2); // Y+
-	domain_host->b_o[4] = domain_host->b_o[3]+4;
-	l_b_o = domain_host->b_o[4];
+	// ASSEMBLE STRUCT ON HOST: DomainConstants
+	domain_constants.tau = tau;
+	domain_constants.forcing = forcing;
+	domain_constants.length.x = length.x;
+	domain_constants.length.y = length.y;
 
 	// ASSEMBLE STRUCT ON DEVICE: Lattice
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
@@ -220,16 +215,13 @@ void load_and_assemble_data(void)
 	lattice_device_prototype->u = u_device;
 	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: lattice_device");
 
-	// ASSEMBLE AND LOAD STRUCT ON DEVICE: Control
-	Domain *domain_tmp = (Domain *)malloc(sizeof(Domain));
-	domain_tmp->tau = tau;
-	domain_tmp->length.x = length.x;
-	domain_tmp->length.y = length.y;
-	domain_tmp->boundary_type = boundary_type_device;
-	domain_tmp->boundary_value = boundary_value_device;
-	domain_tmp->geometry = geometry_device;
-	cudasafe(cudaMemcpy(domain_device, domain_tmp, sizeof(Domain),cudaMemcpyHostToDevice),"Copy Data: control_device");
-	cudasafe(cudaMemcpy(&domain_device->b_o, &domain_host->b_o, sizeof(int)*5,cudaMemcpyHostToDevice),"Copy Data: b_o");
+	// ASSEMBLE AND LOAD STRUCT ON DEVICE: DomainArrays
+	DomainArray *domain_arrays_tmp = (DomainArray *)malloc(sizeof(DomainArray));
+	domain_arrays_tmp->boundary_type = boundary_type_device;
+	domain_arrays_tmp->boundary_value = boundary_value_device;
+	domain_arrays_tmp->geometry = geometry_device;
+	domain_arrays_tmp->force = force_device;
+	cudasafe(cudaMemcpy(domain_arrays_device, domain_arrays_tmp, sizeof(DomainArray),cudaMemcpyHostToDevice),"Copy Data: control_device");
 }
 
 // CALCULATES AND LOADS A CONSTANT DENSITY ZERO VELOCITY INITIAL CONDITION FOR THE DOMAIN
@@ -272,7 +264,7 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%d %lf\n", &domain_host->boundary_type[i2d], &domain_host->boundary_value[i2d]);
+			fscanf(input_file,"%d %lf\n", &domain_arrays_host->boundary_type[i2d], &domain_arrays_host->boundary_value[i2d]);
 		}
 	}
 
@@ -281,7 +273,7 @@ void setup(void)
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%lf\n", &domain_host->geometry[i2d]);
+			fscanf(input_file,"%lf\n", &domain_arrays_host->geometry[i2d]);
 		}
 	}
 
@@ -341,7 +333,7 @@ void output_macros(int time)
 			i2d = x+y*length.x;
 
 			// Impose zero velocity on bounceback nodes
-			if(domain_host->geometry[i2d] == 1)
+			if(domain_arrays_host->geometry[i2d] == 1)
 			{
 				lattice_host->ux[i2d] = 0;
 				lattice_host->uy[i2d] = 0;
@@ -377,7 +369,7 @@ void iterate(void)
     dim3 block_dim = dim3(blocks.x,blocks.y,blocks.z);
 
 	// ITERATE ONCE
-	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros);
+	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER

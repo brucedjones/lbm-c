@@ -1,8 +1,9 @@
-#ifndef D2Q9_BOUNDARY_H
-#define D2Q9_BOUNDARY_H
+#ifndef COLLISION_H
+#define COLLISION_H
 
 // BOUNDARY CONDITION DEVICE FUNCTION PROTOTYPES
-__device__ Node bgk_collision(Node input, double rho_boundary);
-__device__ Node nt_collision(Node input, double rho_boundary);
+__device__ void bgk_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B);
+__device__ void nt_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B);
+__device__ void guo_nt_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B);
 
 #endif

@@ -3,12 +3,14 @@
 
 #include "solver.cuh"
 #include "d2q9_boundary.cu"
+#include "collision.cu"
 
 
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
+__device__ collision collision_functions[3] = { bgk_collision, guo_bgk_collision, nt_collision, guo_nt_collision};
 
 // PREFORMS ONE ITERATION OF THE LBM ON BOUNDARY NODES
-__global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_macros)
+__global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant domain_constants, bool store_macros)
 {
 	// Declare Variables
 	double f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
@@ -28,10 +30,10 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 	int y = (blockDim.y*blockIdx.y)+threadIdx.y;
 
 	// Load domain configuration
-	length.x = domain->length.x;
-	length.y = domain->length.y;
+	length.x = domain_constants.length.x;
+	length.y = domain_constants.length.y;
 	int domain_size = length.x*length.y;
-	double tau = domain->tau;
+	double tau = domain_constants.tau;
 	int i2d_prime = x + y*length.x;
 
 	if(x<length.x && y<length.y)
@@ -69,6 +71,18 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		// APPLY BOUNDARY CONDITION
 		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
 	
+	
+		// COLLISION
+		collision_functions[collision_type](&current_node, &opp, &omega, &ex, &ey, &F, tau, B);
+
+		// COALESCED WRITE
+		__syncthreads();
+		for(int i=0;i<Q;i++)
+		{
+			i2d = (x + y*length.x)+i*(domain_size);
+			lattice->f_curr[i2d] = current_node.f[i];
+		}
+
 		// STORE MACROS IF REQUIRED
 		if (store_macros)
 		{
@@ -78,25 +92,10 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 				lattice->u[i2d] = sqrt(current_node.ux*current_node.ux+current_node.uy*current_node.uy);
 				lattice->rho[i2d] = current_node.rho;
 		} 
-	
-		// COLLISION - COALESCED WRITE
-		u_sq = 1.5*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
-		for(int i=0;i<Q;i++)
-		{
-			i2d = (x + y*length.x)+i*(domain_size);
-	
-			cu = 3.0*(ex[i]*current_node.ux+ey[i]*current_node.uy);
-			f_eq = current_node.rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
-	
-			collision_bgk = (1.0/tau) * (current_node.f[i]-f_eq);
-			collision_s = current_node.f[opp[i]]-current_node.f[i];
-	
-			lattice->f_curr[i2d] = current_node.f[i] - (1-B)*collision_bgk + B*collision_s;
-		}
 	}
 }
 
-__global__ void iterate_forced_kernel (Lattice *lattice, Domain *domain, bool store_macros)
+__global__ void iterate_forced_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant domain_constants, bool store_macros)
 {
 	// Declare Variables
 	double f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
@@ -116,11 +115,24 @@ __global__ void iterate_forced_kernel (Lattice *lattice, Domain *domain, bool st
 	int y = (blockDim.y*blockIdx.y)+threadIdx.y;
 
 	// Load domain configuration
-	length.x = domain->length.x;
-	length.y = domain->length.y;
+	length.x = domain_constants.length.x;
+	length.y = domain_constants.length.y;
 	int domain_size = length.x*length.y;
-	double tau = domain->tau;
+	double tau = domain_constants.tau;
 	int i2d_prime = x + y*length.x;
+
+	// Set collision type and optional forces
+	// The type specified in domain_constants must be multiplied by two to match the listing
+	// order in the collision_functions array, an additional 1 is added to the collision type
+	// to specify a collision with guo body forces
+	int collision_modifier = 0;
+	if(domain_constants.forcing=true)
+	{
+		current_node.F[1] = domain_arrays[i2d_prime]
+		current_node.F[2] = domain_arrays[domain_size+i2d_prime]
+		if(current_node.F[1] == 0 && current_node.F[2] == 0) collision_modifier = 1;
+	}
+	int collision_type = domain_constants.collision_type*2+collision_modifier;
 
 	if(x<length.x && y<length.y)
 	{

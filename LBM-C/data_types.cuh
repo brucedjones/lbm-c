@@ -17,13 +17,19 @@ typedef struct
 
 typedef struct
 {
-	double tau;
-	int2 length;
-	int b_o[5];
 	int *boundary_type;
 	double *boundary_value;
 	double *geometry;
-} Domain;
+	double *force;
+} DomainArray;
+
+typedef struct
+{
+	double tau;
+	int2 length;
+	bool forcing;
+	int collision_type;
+} DomainConstant;
 
 typedef struct
 {
@@ -31,9 +37,11 @@ typedef struct
 	double rho;
 	double ux;
 	double uy;
+	double F[DIM]
 } Node;
 
 // Boundary condition function pointers
 typedef void (*boundary_condition) (Node *, double *);
+typedef void (*collision) (Node *, int *, int *, int *, double *, double, double);
 
 #endif

@@ -1,53 +1,92 @@
-#ifndef D2Q9_BOUNDARY
-#define D2Q9_BOUNDARY
+#ifndef COLLISION
+#define COLLISION
 
 // Necessary includes
 #include "macros.cu"
-#include "d2q9_boundary.cuh"
+#include "collision.cuh"
 
 // These files are only included to remove squiggly red lines in VS2010
 #include "data_types.cuh"
 #include "cuda_runtime.h"
 
-__device__ __noinline__ Node bgk_collision(Node current_node, double rho_boundary)
+__device__ __noinline__ void bgk_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B)
 {
-	Node output; //= input;
+	double f_eq, u_sq, cu;
 
-	u_sq = 1.5*(current_node.ux*current_node.ux + current_node.uy*current_node.uy);
+	u_sq = 1.5*(current_node->ux*current_node->ux + current_node->uy*current_node->uy);
 	for(int i=0;i<Q;i++)
 	{
-		cu = 3.0*(ex[i]*current_node.ux+ey[i]*current_node.uy);
-		f_eq = current_node.rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
+		cu = 3.0*(ex[i]*current_node->ux+ey[i]*current_node->uy);
+		f_eq = current_node->rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
 	
-		current_node.f[i] = current_node.f[i] - (1.0/tau) * (current_node.f[i]-f_eq);
+		current_node->f[i] = current_node->f[i] - (1.0/tau) * (current_node->f[i]-f_eq);
 	}
-	
-	return output;
 }
 
-__device__ __noinline__ Node nt_collision(Node input, double rho_boundary)
+__device__ __noinline__ void guo_bgk_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B)
 {
-	Node output; //= input;
-
-	// COPY KNOWN f's
-	output.f[0] = input.f[0];
-	output.f[2] = input.f[2];
-	output.f[4] = input.f[4];
-	output.f[1] = input.f[1];
-	output.f[5] = input.f[5];
-	output.f[8] = input.f[8];
-
-	// COMPUTE MACROS
-	output.rho = rho_boundary;
-	output.ux = -1.0+((1.0/output.rho)*(input.f[0]+input.f[2]+input.f[4]+2.0*(input.f[1]+input.f[5]+input.f[8])));
-	output.uy = 0.0;
-
-	// COMPUTE UNKNOWN f's
-	output.f[3] = input.f[1] - ((2.0/3.0)*output.rho*output.ux);
-	output.f[6] = input.f[8] - ((1.0/2.0)*(input.f[2]-input.f[4])) - ((1.0/6.0)*output.rho*output.ux);
-	output.f[7] = input.f[5] + ((1.0/2.0)*(input.f[2]-input.f[4])) - ((1.0/6.0)*output.rho*output.ux);
+	double f_eq, u_sq, cu, F_coeff[DIM], force_Term;
 	
-	return output;
+	current_node->ux = current_node->ux + (1/(2*current_node->rho))*F[1];
+	current_node->uy = current_node->uy + (1/(2*current_node->rho))*F[2];
+
+	u_sq = 1.5*(current_node->ux*current_node->ux + current_node->uy*current_node->uy);
+
+	for(int i=0;i<Q;i++)
+	{
+		F_coeff[1] = omega[i]*(1-(1/(2*tau)))*(((ex[i]-current_node->ux)*3)+(ex[i]*9*((ex[i]*current_node->ux)+(ey[i]*current_node->uy))));
+		F_coeff[2] = omega[i]*(1-(1/(2*tau)))*(((ey[i]-current_node->uy)*3)+(ey[i]*9*((ex[i]*current_node->ux)+(ey[i]*current_node->uy))));
+
+		force_term = F_coeff[1]*F[1]+F_coeff[2]*F[2];
+
+		cu = 3.0*(ex[i]*current_node->ux+ey[i]*current_node->uy);
+		f_eq = current_node->rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
+	
+		current_node->f[i] = current_node->f[i] - (1.0/tau) * (current_node->f[i]-f_eq)+force_term;
+	}
+}
+
+__device__ __noinline__ void nt_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B)
+{
+	double f_eq, u_sq, cu, collision_bgk, collision_s;
+
+	u_sq = 1.5*(current_node->ux*current_node->ux + current_node->uy*current_node->uy);
+	for(int i=0;i<Q;i++)
+	{
+		cu = 3.0*(ex[i]*current_node->ux+ey[i]*current_node->uy);
+		f_eq = current_node->rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
+	
+		collision_bgk = (1.0/tau) * (current_node.f[i]-f_eq);
+		collision_s = current_node.f[opp[i]]-current_node.f[i];
+
+		current_node->f[i] = current_node->f[i] - (1-B)*collision_bgk + B*collision_s;
+	}
+}
+
+__device__ void guo_nt_collision(Node *current_node, int *opp, int *omega, int *ex, int *ey, double *F, double tau, double B)
+{
+	double f_eq, u_sq, cu, collision_bgk, collision_s, F_coeff[DIM], force_term;
+
+	current_node->ux = current_node->ux + (1/(2*current_node->rho))*F[1];
+	current_node->uy = current_node->uy + (1/(2*current_node->rho))*F[2];
+
+	u_sq = 1.5*(current_node->ux*current_node->ux + current_node->uy*current_node->uy);
+
+	for(int i=0;i<Q;i++)
+	{
+		F_coeff[1] = omega[i]*(1-(1/(2*tau)))*(((ex[i]-current_node->ux)*3)+(ex[i]*9*((ex[i]*current_node->ux)+(ey[i]*current_node->uy))));
+		F_coeff[2] = omega[i]*(1-(1/(2*tau)))*(((ey[i]-current_node->uy)*3)+(ey[i]*9*((ex[i]*current_node->ux)+(ey[i]*current_node->uy))));
+
+		force_term = F_coeff[1]*F[1]+F_coeff[2]*F[2];
+
+		cu = 3.0*(ex[i]*current_node->ux+ey[i]*current_node->uy);
+		f_eq = current_node->rho*omega[i]*(1.0+cu+(0.5*cu*cu)-u_sq);
+	
+		collision_bgk = (1.0/tau) * (current_node.f[i]-f_eq);
+		collision_s = current_node.f[opp[i]]-current_node.f[i];
+
+		current_node->f[i] = current_node->f[i] - (1-B)*(collision_bgk+force_term) + B*collision_s;
+	}
 }
 
 #endif
