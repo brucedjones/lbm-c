@@ -67,7 +67,7 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		current_node.uy = current_node.uy/current_node.rho;
 	
 		// APPLY BOUNDARY CONDITION
-		if (boundary_type>0) current_node = boundary_conditions[boundary_type-1](current_node, boundary_value);
+		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
 	
 		// STORE MACROS IF REQUIRED
 		if (store_macros)

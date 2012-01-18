@@ -34,6 +34,6 @@ typedef struct
 } Node;
 
 // Boundary condition function pointers
-typedef Node (*boundary_condition) (Node, double);
+typedef void (*boundary_condition) (Node *, double *);
 
 #endif
