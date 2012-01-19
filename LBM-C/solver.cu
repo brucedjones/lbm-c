@@ -9,10 +9,10 @@
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
 __device__ collision collision_functions[4] = { bgk_collision, guo_bgk_collision, nt_collision, guo_nt_collision};
 
-__global__ void iterate_forced_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant domain_constants, bool store_macros)
+__global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant *domain_constants, bool store_macros)
 {
 	// Declare Variables
-	double f_eq, omega[Q], cu, u_sq, collision_bgk, collision_s, B;
+	double omega[Q], B;
 	int i2d, ex[Q], ey[Q], opp[Q];
 	int2 length;
 	Node current_node;
@@ -29,10 +29,10 @@ __global__ void iterate_forced_kernel (Lattice *lattice, DomainArray *domain_arr
 	int y = (blockDim.y*blockIdx.y)+threadIdx.y;
 
 	// Load domain configuration
-	length.x = domain_constants.length.x;
-	length.y = domain_constants.length.y;
+	length.x = domain_constants->length.x;
+	length.y = domain_constants->length.y;
 	int domain_size = length.x*length.y;
-	double tau = domain_constants.tau;
+	double tau = domain_constants->tau;
 	int i2d_prime = x + y*length.x;
 
 	// Set collision type and optional forces
@@ -40,13 +40,13 @@ __global__ void iterate_forced_kernel (Lattice *lattice, DomainArray *domain_arr
 	// order in the collision_functions array, an additional 1 is added to the collision type
 	// to specify a collision with guo body forces
 	int collision_modifier = 0;
-	if(domain_constants.forcing=true)
+	if(domain_constants->forcing==true)
 	{
-		current_node.F[1] = domain_arrays->force[i2d_prime];
-		current_node.F[2] = domain_arrays->force[domain_size+i2d_prime];
-		if(current_node.F[1] == 0 && current_node.F[2] == 0) collision_modifier = 1;
+		current_node.F[0] = domain_arrays->force[i2d_prime];
+		current_node.F[1] = domain_arrays->force[domain_size+i2d_prime];
+		if(current_node.F[0] == 0 && current_node.F[1] == 0) collision_modifier = 1;
 	}
-	int collision_type = domain_constants.collision_type*2+collision_modifier;
+	int collision_type = domain_constants->collision_type*2+collision_modifier;
 
 	if(x<length.x && y<length.y)
 	{
@@ -81,7 +81,7 @@ __global__ void iterate_forced_kernel (Lattice *lattice, DomainArray *domain_arr
 		current_node.uy = current_node.uy/current_node.rho;
 	
 		// APPLY BOUNDARY CONDITION
-		if (boundary_type>0) current_node = boundary_conditions[boundary_type-1](&current_node, &boundary_value);
+		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
 	
 		// COLLISION
 		collision_functions[collision_type](&current_node, opp, ex, ey, omega, tau, B);

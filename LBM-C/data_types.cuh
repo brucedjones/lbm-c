@@ -37,7 +37,7 @@ typedef struct
 	double rho;
 	double ux;
 	double uy;
-	double F[DIM]
+	double F[DIM];
 } Node;
 
 // Boundary condition function pointers

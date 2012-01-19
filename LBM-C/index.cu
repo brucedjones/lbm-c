@@ -50,13 +50,14 @@
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_device;
 DomainArray *domain_arrays_device;
+DomainConstant *domain_constants_device;
 double *f_1_device, *f_2_device, *rho_device, *ux_device, *uy_device, *u_device, *boundary_value_device, *geometry_device, *force_device; 
 int *boundary_type_device;
 
 // HOST VARIABLE DECLARATION
 Lattice *lattice_host, *lattice_device_prototype;
 DomainArray *domain_arrays_host;
-DomainConstant domain_constants;
+DomainConstant *domain_constants_host;
 double *f_host, *rho_host, *ux_host, *uy_host, *u_host, *boundary_value_host, *geometry_host, *force_host;
 int *boundary_type_host;
 
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
 	
 	// Initialise memory for LBM model
 	setup();
-
+	
 	// Get available memory on graphics card after allocation
 	size_t freeMemory_after;
 	size_t totalMemory_after;
@@ -91,14 +92,20 @@ int main(int argc, char **argv)
 	printf("Memory Used:		%luMb\n\n", (unsigned long) (freeMemory_before-freeMemory_after) / 1024 / 1024);
 
 	// Report domain configuration
-	printf("Length.x:		%d\n", domain_arrays_host->length.x);
-	printf("Length.y:		%d\n", domain_arrays_host->length.y);
-	printf("Relaxation Time (Tau):	%f\n", domain_arrays_host->tau);
+	printf("Length.x:		%d\n", domain_constants_host->length.x);
+	printf("Length.y:		%d\n", domain_constants_host->length.y);
+	printf("Relaxation Time (Tau):	%f\n", domain_constants_host->tau);
 	printf("\nPress return to continue...");
 	getchar();
 
 	residual = 0;
 	output_macros(-1);
+
+	// MANUAL SETUP OF FORCING VARIABLES
+	domain_constants_host->forcing = false;
+	domain_constants_host->collision_type = 2;
+	cudasafe(cudaMemcpy(domain_constants_device, domain_constants_host, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Copy Data: lattice_device");
+
 
 	// Get current clock cycle number
 	clock_t t1=clock();
@@ -151,6 +158,7 @@ void allocate_memory_host(void)
 	// STRUCTS:
 	lattice_host = (Lattice *)malloc(sizeof(Lattice));
 	domain_arrays_host = (DomainArray *)malloc(sizeof(DomainArray));
+	domain_constants_host = (DomainConstant *)malloc(sizeof(DomainConstant));
 	// ARRAYS:
 	boundary_type_host = (int *)malloc(domain_size*sizeof(int));
 	boundary_value_host = (double *)malloc(domain_size*sizeof(double));
@@ -170,6 +178,7 @@ void allocate_memory_device(void)
 	// STRUCTS:
 	cudasafe(cudaMalloc((void **)&lattice_device,sizeof(Lattice)), "Allocate Memory: lattice_device");
 	cudasafe(cudaMalloc((void **)&domain_arrays_device,sizeof(DomainArray)), "Allocate Memory: control_device");
+	cudasafe(cudaMalloc((void **)&domain_constants_device,sizeof(DomainConstant)), "Allocate Memory: control_device");
 	// ARRAYS:
 	cudasafe(cudaMalloc((void **)&f_1_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_1_device");
 	cudasafe(cudaMalloc((void **)&f_2_device,domain_size*Q*sizeof(double)), "Allocate Memory: f_2_device");
@@ -200,10 +209,10 @@ void load_and_assemble_data(void)
 	domain_arrays_host->geometry = geometry_host;
 	
 	// ASSEMBLE STRUCT ON HOST: DomainConstants
-	domain_constants.tau = tau;
-	domain_constants.forcing = forcing;
-	domain_constants.length.x = length.x;
-	domain_constants.length.y = length.y;
+	domain_constants_host->tau = tau;
+	domain_constants_host->forcing = forcing;
+	domain_constants_host->length.x = length.x;
+	domain_constants_host->length.y = length.y;
 
 	// ASSEMBLE STRUCT ON DEVICE: Lattice
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
@@ -286,7 +295,7 @@ void setup(void)
 // ERROR CHECKING FOR MEMORY ALLOCATION
 void cudasafe( cudaError_t error, char* message)
 {
-   if(error!=cudaSuccess) { fprintf(stderr,"ERROR: %s : %i\n",message,error); exit(-1); }
+   if(error!=cudaSuccess) { fprintf(stderr,"ERROR: %s : %s\n",message,cudaGetErrorString(error)); exit(-1); }
 }
 
 // ERROR CHECKING FOR KERNEL EXECUTION
@@ -369,16 +378,16 @@ void iterate(void)
     dim3 block_dim = dim3(blocks.x,blocks.y,blocks.z);
 
 	// ITERATE ONCE
-	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, store_macros);
+	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, domain_constants_device, store_macros);
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
-	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers");
+	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers From Device");
 	double *tmp_1 = lattice_device_prototype->f_prev;
 	double *tmp_2 = lattice_device_prototype->f_curr;
 	lattice_device_prototype->f_curr = tmp_1;
 	lattice_device_prototype->f_prev = tmp_2;
-	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers");
+	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers To Device");
 }
 
 // square<T> computes the square of a number f(x) -> x*x
