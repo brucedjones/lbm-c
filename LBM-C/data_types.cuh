@@ -42,6 +42,6 @@ typedef struct
 
 // Boundary condition function pointers
 typedef void (*boundary_condition) (Node *, double *);
-typedef void (*collision) (Node *, int *, int *, int *, double *, double, double);
+typedef void (*collision) (Node *, int[9], int[9], int[9], double[9], double, double);
 
 #endif
