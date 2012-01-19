@@ -48,7 +48,7 @@ __device__ __noinline__ void guo_bgk_collision(Node *current_node, int opp[Q], i
 
 __device__ __noinline__ void nt_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
 {
-	double f_eq, u_sq, cu, collision_bgk, collision_s;
+	double f_eq, u_sq, cu, collision_bgk, collision_s, tmp[Q];
 
 	u_sq = 1.5*(current_node->ux*current_node->ux + current_node->uy*current_node->uy);
 	for(int i=0;i<Q;i++)
@@ -58,14 +58,20 @@ __device__ __noinline__ void nt_collision(Node *current_node, int opp[Q], int ex
 	
 		collision_bgk = (1.0/tau) * (current_node->f[i]-f_eq);
 		collision_s = current_node->f[opp[i]]-current_node->f[i];
-
-		current_node->f[i] = current_node->f[i] - (1-B)*collision_bgk + B*collision_s;
+		
+		tmp[i] = current_node->f[i] - (1-B)*collision_bgk + B*collision_s;
 	}
+
+	for(int i =0;i<Q;i++)
+	{
+		current_node->f[i] = tmp[i];
+	}
+
 }
 
 __device__ void guo_nt_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
 {
-	double f_eq, u_sq, cu, collision_bgk, collision_s, F_coeff[DIM], force_term;
+	double f_eq, u_sq, cu, collision_bgk, collision_s, F_coeff[DIM], force_term, tmp[Q];
 
 	current_node->ux = current_node->ux + (1/(2*current_node->rho))*current_node->F[0];
 	current_node->uy = current_node->uy + (1/(2*current_node->rho))*current_node->F[1];
@@ -85,14 +91,17 @@ __device__ void guo_nt_collision(Node *current_node, int opp[Q], int ex[Q], int 
 		collision_bgk = (1.0/tau) * (current_node->f[i]-f_eq);
 		collision_s = current_node->f[opp[i]]-current_node->f[i];
 
-		current_node->f[i] = current_node->f[i] - (1-B)*(collision_bgk+force_term) + B*collision_s;
+		tmp[i] = current_node->f[i] - (1-B)*(collision_bgk+force_term) + B*collision_s;
+	}
+
+	for(int i =0;i<Q;i++)
+	{
+		current_node->f[i] = tmp[i];
 	}
 }
 
 __device__ void bounceback(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
 {
-	double tmp1, tmp2;
-	
 	double tmp[Q];
 	for(int i=0;i<Q;i++)
 	{

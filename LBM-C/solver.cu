@@ -49,7 +49,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 			if(current_node.F[0] == 0 && current_node.F[1] == 0) collision_modifier = 1;
 		}
 		int collision_type = domain_constants->collision_type*2+collision_modifier;*/
-		int collision_type = 0;
+		int collision_type = 2;
 
 		// Load boundary condition
 		int boundary_type = domain_arrays->boundary_type[i2d_prime];
@@ -57,7 +57,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	
 		// Load Geometry
 		B = domain_arrays->geometry[i2d_prime];
-		if(B==1) collision_type = 4;
+		//if(B==1) collision_type = 4;
 	
 		// STREAMING - UNCOALESCED READ
 		int target_x, target_y;

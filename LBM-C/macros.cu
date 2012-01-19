@@ -12,8 +12,8 @@
 #endif
 
 #if DIM == 2
-	#define NUM_THREADS_DIM_X 23
-	#define NUM_THREADS_DIM_Y 22
+	#define NUM_THREADS_DIM_X 20
+	#define NUM_THREADS_DIM_Y 25
 #endif
 
 #endif

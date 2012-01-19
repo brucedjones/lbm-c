@@ -276,13 +276,15 @@ void setup(void)
 			fscanf(input_file,"%d %lf\n", &domain_arrays_host->boundary_type[i2d], &domain_arrays_host->boundary_value[i2d]);
 		}
 	}
-
+	double B;
 	for(int j = 0; j<length.y; j++)
 	{
 		for(int i = 0; i<length.x; i++)
 		{
 			i2d = i + j*length.x;
-			fscanf(input_file,"%lf\n", &domain_arrays_host->geometry[i2d]);
+			//fscanf(input_file,"%lf\n", &domain_arrays_host->geometry[i2d]);
+			fscanf(input_file,"%lf\n", &B);
+			domain_arrays_host->geometry[i2d] = B;
 		}
 	}
 
