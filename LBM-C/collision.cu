@@ -89,4 +89,24 @@ __device__ void guo_nt_collision(Node *current_node, int opp[Q], int ex[Q], int 
 	}
 }
 
+__device__ void bounceback(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
+{
+	double tmp1, tmp2;
+	
+	double tmp[Q];
+	for(int i=0;i<Q;i++)
+	{
+		tmp[i] = current_node->f[i];
+	}
+
+	for(int i=0;i<Q;i++)
+	{
+		current_node->f[i] = tmp[opp[i]];
+	}
+
+	current_node->ux = 0;
+	current_node->uy = 0;
+	current_node->rho = 0;
+}
+
 #endif
