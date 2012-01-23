@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
 	// MANUAL SETUP OF FORCING VARIABLES
 	domain_constants_host->forcing = false;
-	domain_constants_host->collision_type = 2;
+	domain_constants_host->collision_type = 1;
 	cudasafe(cudaMemcpy(domain_constants_device, domain_constants_host, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Copy Data: lattice_device");
 
 
@@ -207,7 +207,8 @@ void load_and_assemble_data(void)
 	domain_arrays_host->boundary_type = boundary_type_host;
 	domain_arrays_host->boundary_value = boundary_value_host;
 	domain_arrays_host->geometry = geometry_host;
-	
+	domain_arrays_host->force = force_host;
+
 	// ASSEMBLE STRUCT ON HOST: DomainConstants
 	domain_constants_host->tau = tau;
 	domain_constants_host->forcing = forcing;
@@ -287,10 +288,19 @@ void setup(void)
 			domain_arrays_host->geometry[i2d] = B;
 		}
 	}
-
+	for(int j = 0; j<length.y; j++)
+	{
+		for(int i = 0; i<length.x; i++)
+		{
+			i2d = i + j*length.x;
+			domain_arrays_host->force[i2d] = 0.;
+			domain_arrays_host->force[domain_size+i2d] = 0.;
+		}
+	}
 	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_type_device");
 	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
 	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
+	//cudasafe(cudaMemcpy(force_device, force_host, sizeof(double)*domain_size*DIM,cudaMemcpyHostToDevice),"Copy Data: force_device");
 
 }
 

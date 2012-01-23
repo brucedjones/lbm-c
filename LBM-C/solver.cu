@@ -5,9 +5,9 @@
 #include "d2q9_boundary.cu"
 #include "collision.cu"
 
-
+// LIST OF AVAILABLE BOUNDRY TYPES AND COLLISION FUNCTIONS
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
-__device__ collision collision_functions[5] = { bgk_collision, guo_bgk_collision, nt_collision, guo_nt_collision, bounceback};
+__device__ collision collision_functions[5] = { bgk_collision, guo_bgk_collision, ntpor_collision, guo_ntpor_collision, bounceback};
 
 __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant *domain_constants, bool store_macros)
 {
@@ -41,15 +41,14 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		// The type specified in domain_constants must be multiplied by two to match the listing
 		// order in the collision_functions array, an additional 1 is added to the collision type
 		// to specify a collision with guo body forces
-		/*int collision_modifier = 0;
+		int collision_modifier = 0;
 		if(domain_constants->forcing==true)
 		{
 			current_node.F[0] = domain_arrays->force[i2d_prime];
 			current_node.F[1] = domain_arrays->force[domain_size+i2d_prime];
-			if(current_node.F[0] == 0 && current_node.F[1] == 0) collision_modifier = 1;
+			if(current_node.F[0] > 0 && current_node.F[1] > 0) collision_modifier = 1;
 		}
-		int collision_type = domain_constants->collision_type*2+collision_modifier;*/
-		int collision_type = 2;
+		int collision_type = (domain_constants->collision_type*2)+collision_modifier;
 
 		// Load boundary condition
 		int boundary_type = domain_arrays->boundary_type[i2d_prime];
@@ -57,7 +56,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	
 		// Load Geometry
 		B = domain_arrays->geometry[i2d_prime];
-		//if(B==1) collision_type = 4;
+		if(B==1) collision_type = 4;
 	
 		// STREAMING - UNCOALESCED READ
 		int target_x, target_y;

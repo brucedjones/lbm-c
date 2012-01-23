@@ -46,7 +46,7 @@ __device__ __noinline__ void guo_bgk_collision(Node *current_node, int opp[Q], i
 	}
 }
 
-__device__ __noinline__ void nt_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
+__device__ __noinline__ void ntpor_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
 {
 	double f_eq, u_sq, cu, collision_bgk, collision_s, tmp[Q];
 
@@ -69,7 +69,7 @@ __device__ __noinline__ void nt_collision(Node *current_node, int opp[Q], int ex
 
 }
 
-__device__ void guo_nt_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
+__device__ void guo_ntpor_collision(Node *current_node, int opp[Q], int ex[Q], int ey[Q], double omega[Q], double tau, double B)
 {
 	double f_eq, u_sq, cu, collision_bgk, collision_s, F_coeff[DIM], force_term, tmp[Q];
 
