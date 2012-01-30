@@ -37,6 +37,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma comment(lib, "cgns/lib/cgns.lib")
+#include "cgns\include\cgnslib.h"
+
 #include <stdio.h>
 #include "data_types.cuh"
 #include "macros.cu"
@@ -69,6 +72,9 @@ int domain_size, maxT, saveT, steadyT, collision_type;
 int3 length;
 bool store_macros = false;
 bool forcing = false;
+
+// DECLARE OUTPUT HANDLER
+CGNSOutputHandler output_handler;
 
 int main(int argc, char **argv)
 {
@@ -265,6 +271,7 @@ void setup(void)
 	int IC_type, i2d;
 	//IC_type = 0;
 	fscanf(input_file,"%d %d %lf %d %d %d %d %lf %d\n", &length.x, &length.y, &tau, &forcing, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
+	length.z=0;
 	domain_size = length.x*length.y;
 	allocate_memory_host();
 	allocate_memory_device();
@@ -310,6 +317,8 @@ void setup(void)
 	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
 	cudasafe(cudaMemcpy(force_device, force_host, sizeof(double)*domain_size*DIM,cudaMemcpyHostToDevice),"Copy Data: force_device");
 
+	CGNSOutputHandler tmp("LBM-C Results.cgns",length.x,length.y,length.z);
+	output_handler = tmp;
 }
 
 // ERROR CHECKING FOR MEMORY ALLOCATION
@@ -342,41 +351,38 @@ void output_macros(int time)
 	cudasafe(cudaMemcpy(uy_host, uy_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
 	cudasafe(cudaMemcpy(u_host, u_device, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 	
-// Assemble formatted filename	
-	char fname[19];
-	FILE *file;
-	sprintf(fname, "results_%i.dat", time);
-// Open file
-	file = fopen(fname,"w");
-// Write File Header	
-	fprintf(file,"TITLE=\"2D Poiseuille Flow\"\nVARIABLES= \"X\", \"Y\", \"rho\", \"uX\", \"uY\", \"u\"");//\nDATASETAUXDATA ComputerTime=\"%lus\"\nDATASETAUXDATA DeviceMemoryUsed=\"%luMb\"",cputime, mem);
-// Write Zone Header
-	// note: nx and ny values are not in the "correct" order in the zone header, errors occur when loading the data in tecplot
-	// if the "correct" order is used
-	fprintf(file,"\nZONE T=\"2D Poiseuille Flow at time = %i\", I=%i, J=%i, DATAPACKING=POINT, SOLUTIONTIME=%i", time,length.x,length.y,time);
-// Loop over all nodes to calculate and print nodal macroscopic values to file, output some feedback data to console
-	int i2d;
-	for (int y=0;y<length.y;y++){
-		for (int x=0;x<length.x;x++){
-			
-			i2d = x+y*length.x;
+	char *output_file;
+	output_file = (char *)malloc(sizeof(char)*33);
+	strcpy(output_file,"test.cgns");
 
-			// Impose zero velocity on bounceback nodes
-			if(domain_arrays_host->geometry[i2d] == 1)
-			{
-				lattice_host->ux[i2d] = 0;
-				lattice_host->uy[i2d] = 0;
-				lattice_host->u[i2d] = 0;
-			}
-			// Write to files
-			fprintf(file,"\n%i %i %lf %lf %lf %lf", x, y, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], lattice_host->u[i2d]);
-			// Output reference information to console
-			if (y==length.y/2 && x == 0) {printf("\n time = %i; rho = %lf; uX = %lf; uY = %lf, resid = %g", time, lattice_host->rho[i2d], lattice_host->ux[i2d], lattice_host->uy[i2d], residual);}
-			//if (y==length.y/2 && x == 0) {printf("\n time = %i; resid = %e", time, residual);}
-		}
+	char **labels;
+	double **data;
+
+	int fields = 3;
+
+	labels = (char **)malloc(fields * sizeof (char *));
+	data = (double **)malloc(fields * sizeof(double));
+
+	for(int i = 0; i<fields;i++)
+	{
+		labels[i] = (char *)malloc(STR_LENGTH*sizeof(char));
 	}
-	// Close file
-	fclose(file);
+
+	data[0] = lattice_host->rho;
+	data[1] = lattice_host->ux;
+	data[2] = lattice_host->uy;
+
+	strcpy(labels[0],"Density");
+	strcpy(labels[1],"VelocityX");
+	strcpy(labels[2],"VelocityY");
+
+	output_handler.append_solution_output(time,fields,data,labels);
+
+	int i2d, i, j;
+	i = 0;
+	j = length.y/2;
+	i2d = i+j*length.x;
+	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->uX[i2d]<< "; uY = " << lattice_host->uY[i2d] << "; resid = " << residual << endl;
 }
 
 // CONFIGURES THE KERNEL CONFIGURATION AND LAUNCHES KERNEL

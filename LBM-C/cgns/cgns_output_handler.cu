@@ -253,6 +253,8 @@ class CGNSOutputHandler
 public:
 	CGNSOutputHandler (char *, int, int, int);
 
+	CGNSOutputHandler ();
+
 	void append_solution_output(int iter, int num_fields, double **data, char **labels)
 	{
 		open_file();
@@ -316,5 +318,7 @@ CGNSOutputHandler::CGNSOutputHandler (char *output_filename, int length_x, int l
 	write_base();
 	write_grid();
 }
+
+CGNSOutputHandler::CGNSOutputHandler (){}
 
 #endif
