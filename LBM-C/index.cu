@@ -382,7 +382,7 @@ void output_macros(int time)
 	i = 0;
 	j = length.y/2;
 	i2d = i+j*length.x;
-	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->uX[i2d]<< "; uY = " << lattice_host->uY[i2d] << "; resid = " << residual << endl;
+	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->ux[i2d]<< "; uY = " << lattice_host->uy[i2d] << "; resid = " << residual << endl;
 }
 
 // CONFIGURES THE KERNEL CONFIGURATION AND LAUNCHES KERNEL
