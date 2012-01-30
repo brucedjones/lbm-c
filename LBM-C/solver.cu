@@ -46,7 +46,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		{
 			current_node.F[0] = domain_arrays->force[i2d_prime];
 			current_node.F[1] = domain_arrays->force[domain_size+i2d_prime];
-			if(current_node.F[0] > 0 && current_node.F[1] > 0) collision_modifier = 1;
+			if(current_node.F[0] > 0 || current_node.F[1] > 0) collision_modifier = 1;
 		}
 		int collision_type = (domain_constants->collision_type*2)+collision_modifier;
 

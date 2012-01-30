@@ -42,6 +42,7 @@
 #include "macros.cu"
 #include "solver.cu"
 #include "index.cuh"
+#include "cgns/cgns_output_handler.cu"
 
 // Include THRUST libraries
 #include <thrust/device_vector.h>
@@ -102,8 +103,8 @@ int main(int argc, char **argv)
 	output_macros(-1);
 
 	// MANUAL SETUP OF FORCING VARIABLES
-	domain_constants_host->forcing = false;
-	domain_constants_host->collision_type = 1;
+	domain_constants_host->forcing = true;
+	domain_constants_host->collision_type = 0;
 	cudasafe(cudaMemcpy(domain_constants_device, domain_constants_host, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Copy Data: lattice_device");
 
 
@@ -263,7 +264,7 @@ void setup(void)
     input_file = fopen ("input.dat","r");
 	int IC_type, i2d;
 	//IC_type = 0;
-	fscanf(input_file,"%d %d %lf %d %d %d %lf %d\n", &length.x, &length.y, &tau, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
+	fscanf(input_file,"%d %d %lf %d %d %d %d %lf %d\n", &length.x, &length.y, &tau, &forcing, &saveT, &maxT, &steadyT, &tolerance, &IC_type);
 	domain_size = length.x*length.y;
 	allocate_memory_host();
 	allocate_memory_device();
@@ -288,19 +289,26 @@ void setup(void)
 			domain_arrays_host->geometry[i2d] = B;
 		}
 	}
-	for(int j = 0; j<length.y; j++)
+	if(forcing==true)
 	{
-		for(int i = 0; i<length.x; i++)
+		double f;
+		for(int n = 0; n<DIM; n++)
 		{
-			i2d = i + j*length.x;
-			domain_arrays_host->force[i2d] = 0.;
-			domain_arrays_host->force[domain_size+i2d] = 0.;
+			for(int j = 0; j<length.y; j++)
+			{
+				for(int i = 0; i<length.x; i++)
+				{
+					fscanf(input_file,"%lf\n", &f);
+					i2d = i + j*length.x;
+					domain_arrays_host->force[(domain_size*n)+i2d] = f;
+				}
+			}
 		}
 	}
 	cudasafe(cudaMemcpy(boundary_type_device, boundary_type_host, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_type_device");
 	cudasafe(cudaMemcpy(boundary_value_device, boundary_value_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: boundary_value_device");
 	cudasafe(cudaMemcpy(geometry_device, geometry_host, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Copy Data: geometry_device");
-	//cudasafe(cudaMemcpy(force_device, force_host, sizeof(double)*domain_size*DIM,cudaMemcpyHostToDevice),"Copy Data: force_device");
+	cudasafe(cudaMemcpy(force_device, force_host, sizeof(double)*domain_size*DIM,cudaMemcpyHostToDevice),"Copy Data: force_device");
 
 }
 
