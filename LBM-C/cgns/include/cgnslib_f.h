@@ -1,15 +1,15 @@
 ! Fortran version of cgnslib.h
         integer CG_BUILD_64BIT
-        parameter (CG_BUILD_64BIT = 0)
+        parameter (CG_BUILD_64BIT = 1)
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*      modes for cgns file                                            *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-        integer*4 CG_MODE_READ, CG_MODE_WRITE, CG_MODE_MODIFY
+        integer*8 CG_MODE_READ, CG_MODE_WRITE, CG_MODE_MODIFY
         parameter (CG_MODE_READ   = 0)
         parameter (CG_MODE_WRITE  = 1)
         parameter (CG_MODE_MODIFY = 2)
 !* legacy code support
-        integer*4 MODE_READ, MODE_WRITE, MODE_MODIFY
+        integer*8 MODE_READ, MODE_WRITE, MODE_MODIFY
         parameter (MODE_READ   = 0)
         parameter (MODE_WRITE  = 1)
         parameter (MODE_MODIFY = 2)
@@ -17,8 +17,8 @@
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*      file types                                                     *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-        integer*4 CG_FILE_NONE, CG_FILE_ADF, CG_FILE_HDF5
-        integer*4 CG_FILE_ADF2
+        integer*8 CG_FILE_NONE, CG_FILE_ADF, CG_FILE_HDF5
+        integer*8 CG_FILE_ADF2
         parameter (CG_FILE_NONE = 0)
         parameter (CG_FILE_ADF  = 1)
         parameter (CG_FILE_HDF5 = 2)
@@ -27,15 +27,15 @@
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*      some error code                                                *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-        integer*4 CG_OK, CG_ERROR, CG_NODE_NOT_FOUND
-        integer*4 CG_INCORRECT_PATH, CG_NO_INDEX_DIM
+        integer*8 CG_OK, CG_ERROR, CG_NODE_NOT_FOUND
+        integer*8 CG_INCORRECT_PATH, CG_NO_INDEX_DIM
         parameter (CG_OK             = 0)
         parameter (CG_ERROR          = 1)
         parameter (CG_NODE_NOT_FOUND = 2)
         parameter (CG_INCORRECT_PATH = 3)
         parameter (CG_NO_INDEX_DIM   = 4)
 !* legacy code support
-        integer*4 ALL_OK, ERROR, NODE_NOT_FOUND, INCORRECT_PATH
+        integer*8 ALL_OK, ERROR, NODE_NOT_FOUND, INCORRECT_PATH
         parameter (ALL_OK         = 0)
         parameter (ERROR          = 1)
         parameter (NODE_NOT_FOUND = 2)
@@ -44,23 +44,23 @@
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*      Dimensional Units                                              *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-        integer*4 CG_UserDefined, CG_Null
+        integer*8 CG_UserDefined, CG_Null
         parameter (CG_Null = 0)
         parameter (CG_UserDefined = 1)
 !* legacy code support
-        integer*4 Null, UserDefined
+        integer*8 Null, UserDefined
         parameter (Null = 0)
         parameter (UserDefined = 1)
 
-        integer*4 Kilogram, Gram, Slug, PoundMass
+        integer*8 Kilogram, Gram, Slug, PoundMass
         character*32 MassUnitsName(0:5)
         parameter (Kilogram  = 2)
         parameter (Gram      = 3)
         parameter (Slug      = 4)
         parameter (PoundMass = 5)
 
-        integer*4 Meter, Centimeter, Millimeter
-        integer*4 Foot, Inch
+        integer*8 Meter, Centimeter, Millimeter
+        integer*8 Foot, Inch
         character*32 LengthUnitsName(0:6)
         parameter (Meter      = 2)
         parameter (Centimeter = 3)
@@ -68,23 +68,23 @@
         parameter (Foot       = 5)
         parameter (Inch       = 6)
 
-        integer*4 Second
+        integer*8 Second
         character*32 TimeUnitsName(0:2)
         parameter (Second = 2)
 
-        integer*4 Kelvin, Celsius, Rankine, Fahrenheit
+        integer*8 Kelvin, Celsius, Rankine, Fahrenheit
         character*32 TemperatureUnitsName(0:5)
         parameter (Kelvin     = 2)
         parameter (Celsius    = 3)
         parameter (Rankine    = 4)
         parameter (Fahrenheit = 5)
 
-        integer*4 Degree, Radian
+        integer*8 Degree, Radian
         character*32 AngleUnitsName(0:3)
         parameter (Degree = 2)
         parameter (Radian = 3)
 
-        integer*4 Ampere, Abampere, Statampere, Edison, auCurrent
+        integer*8 Ampere, Abampere, Statampere, Edison, auCurrent
         character*32 ElectricCurrentUnitsName(0:6)
         parameter (Ampere     = 2)
         parameter (Abampere   = 3)
@@ -92,14 +92,14 @@
         parameter (Edison     = 5)
         parameter (auCurrent  = 6)
 
-        integer*4 Mole, Entities, StandardCubicFoot, StandardCubicMeter
+        integer*8 Mole, Entities, StandardCubicFoot, StandardCubicMeter
         character*32 SubstanceAmountUnitsName(0:5)
         parameter (Mole               = 2)
         parameter (Entities           = 3)
         parameter (StandardCubicFoot  = 4)
         parameter (StandardCubicMeter = 5)
 
-        integer*4 Candela, Candle, Carcel, Hefner, Violle
+        integer*8 Candela, Candle, Carcel, Hefner, Violle
         character*32 LuminousIntensityUnitsName(0:6)
         parameter (Candela = 2)
         parameter (Candle  = 3)
@@ -110,9 +110,9 @@
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*      Data Class                                                     *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-        integer*4 Dimensional, NormalizedByDimensional
-        integer*4 NormalizedByUnknownDimensional
-        integer*4 NondimensionalParameter, DimensionlessConstant
+        integer*8 Dimensional, NormalizedByDimensional
+        integer*8 NormalizedByUnknownDimensional
+        integer*8 NondimensionalParameter, DimensionlessConstant
         character*32 DataClassName(0:6)
         parameter (Dimensional                    = 2)
         parameter (NormalizedByDimensional        = 3)
@@ -124,8 +124,8 @@
 !*      Grid Location                                                  *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Vertex, CellCenter, FaceCenter
-        integer*4 IFaceCenter, JFaceCenter, KFaceCenter, EdgeCenter
+        integer*8 Vertex, CellCenter, FaceCenter
+        integer*8 IFaceCenter, JFaceCenter, KFaceCenter, EdgeCenter
         character*32 GridLocationName(0:8)
         parameter (Vertex      = 2)
         parameter (CellCenter  = 3)
@@ -139,7 +139,7 @@
 !*      Grid Connectivity Types                                        *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Overset, Abutting, Abutting1to1
+        integer*8 Overset, Abutting, Abutting1to1
         character*32 GridConnectivityTypeName(0:4)
         parameter (Overset      = 2)
         parameter (Abutting     = 3)
@@ -149,9 +149,9 @@
 !*      Point Set Types                                                *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 PointList, PointListDonor
-        integer*4 PointRange, PointRangeDonor
-        integer*4 ElementRange, ElementList, CellListDonor
+        integer*8 PointList, PointListDonor
+        integer*8 PointRange, PointRangeDonor
+        integer*8 ElementRange, ElementList, CellListDonor
         character*32 PointSetTypeName(0:8)
         parameter (PointList       = 2)
         parameter (PointListDonor  = 3)
@@ -165,10 +165,10 @@
 !*      Governing Equations and Physical Models Types                  *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 FullPotential, Euler
-        integer*4 NSLaminar, NSTurbulent
-        integer*4 NSLaminarIncompressible
-        integer*4 NSTurbulentIncompressible
+        integer*8 FullPotential, Euler
+        integer*8 NSLaminar, NSTurbulent
+        integer*8 NSLaminarIncompressible
+        integer*8 NSTurbulentIncompressible
         character*32 GoverningEquationsTypeName(0:7)
         parameter (FullPotential             = 2)
         parameter (Euler                     = 3)
@@ -207,27 +207,27 @@
 !** EMConductivityModel_t: Constant, Frozen, Equilibrium_LinRessler,
 !**                             Chemistry_LinRessler
 
-        integer*4 Ideal, VanderWaals
-        integer*4 Constant
-        integer*4 PowerLaw, SutherlandLaw
-        integer*4 ConstantPrandtl
-        integer*4 EddyViscosity, ReynoldsStress
-        integer*4 ReynoldsStressAlgebraic
-        integer*4 Algebraic_BaldwinLomax, Algebraic_CebeciSmith
-        integer*4 HalfEquation_JohnsonKing, OneEquation_BaldwinBarth
-        integer*4 OneEquation_SpalartAllmaras
-        integer*4 TwoEquation_JonesLaunder
-        integer*4 TwoEquation_MenterSST, TwoEquation_Wilcox
-        integer*4 CaloricallyPerfect, ThermallyPerfect
-        integer*4 ConstantDensity, RedlichKwong
-        integer*4 Frozen, ThermalEquilib, ThermalNonequilib
-        integer*4 ChemicalEquilibCurveFit
-        integer*4 ChemicalEquilibMinimization
-        integer*4 ChemicalNonequilib
-        integer*4 EMElectricField, EMMagneticField, Voltage
-        integer*4 Interpolated
-        integer*4 EMConductivity, Equilibrium_LinRessler
-        integer*4 Chemistry_LinRessler
+        integer*8 Ideal, VanderWaals
+        integer*8 Constant
+        integer*8 PowerLaw, SutherlandLaw
+        integer*8 ConstantPrandtl
+        integer*8 EddyViscosity, ReynoldsStress
+        integer*8 ReynoldsStressAlgebraic
+        integer*8 Algebraic_BaldwinLomax, Algebraic_CebeciSmith
+        integer*8 HalfEquation_JohnsonKing, OneEquation_BaldwinBarth
+        integer*8 OneEquation_SpalartAllmaras
+        integer*8 TwoEquation_JonesLaunder
+        integer*8 TwoEquation_MenterSST, TwoEquation_Wilcox
+        integer*8 CaloricallyPerfect, ThermallyPerfect
+        integer*8 ConstantDensity, RedlichKwong
+        integer*8 Frozen, ThermalEquilib, ThermalNonequilib
+        integer*8 ChemicalEquilibCurveFit
+        integer*8 ChemicalEquilibMinimization
+        integer*8 ChemicalNonequilib
+        integer*8 EMElectricField, EMMagneticField, Voltage
+        integer*8 Interpolated
+        integer*8 EMConductivity, Equilibrium_LinRessler
+        integer*8 Chemistry_LinRessler
         character*32 ModelTypeName(0:35)
 
         parameter (Ideal                       = 2)
@@ -269,17 +269,17 @@
 !*      Boundary Condition Types                                       *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 BCAxisymmetricWedge, BCDegenerateLine
-        integer*4 BCDegeneratePoint
-        integer*4 BCDirichlet, BCExtrapolate, BCFarfield, BCGeneral
-        integer*4 BCInflow, BCInflowSubsonic,  BCInflowSupersonic
-        integer*4 BCNeumann
-        integer*4 BCOutflow, BCOutflowSubsonic, BCOutflowSupersonic
-        integer*4 BCSymmetryPlane, BCSymmetryPolar
-        integer*4 BCTunnelInflow, BCTunnelOutflow
-        integer*4 BCWall, BCWallInviscid, BCWallViscous
-        integer*4 BCWallViscousHeatFlux, BCWallViscousIsothermal
-        integer*4 FamilySpecified
+        integer*8 BCAxisymmetricWedge, BCDegenerateLine
+        integer*8 BCDegeneratePoint
+        integer*8 BCDirichlet, BCExtrapolate, BCFarfield, BCGeneral
+        integer*8 BCInflow, BCInflowSubsonic,  BCInflowSupersonic
+        integer*8 BCNeumann
+        integer*8 BCOutflow, BCOutflowSubsonic, BCOutflowSupersonic
+        integer*8 BCSymmetryPlane, BCSymmetryPolar
+        integer*8 BCTunnelInflow, BCTunnelOutflow
+        integer*8 BCWall, BCWallInviscid, BCWallViscous
+        integer*8 BCWallViscousHeatFlux, BCWallViscousIsothermal
+        integer*8 FamilySpecified
         character*32 BCTypeName(0:25)
         parameter (BCAxisymmetricWedge     = 2)
         parameter (BCDegenerateLine        = 3)
@@ -310,8 +310,8 @@
 !*      Data types                                                     *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Integer, RealSingle, RealDouble, Character
-        integer*4 LongInteger
+        integer*8 Integer, RealSingle, RealDouble, Character
+        integer*8 LongInteger
         character*32 DataTypeName(0:6)
         parameter (Integer     = 2)
         parameter (RealSingle  = 3)
@@ -323,7 +323,7 @@
 !*      BCData_t types                                                 *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Dirichlet, Neumann
+        integer*8 Dirichlet, Neumann
         character*32 BCDataTypeName(0:3)
         parameter (Dirichlet = 2)
         parameter (Neumann   = 3)
@@ -332,12 +332,12 @@
 !*      Element types                                                  *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 NODE, BAR_2, BAR_3, TRI_3, TRI_6
-        integer*4 QUAD_4, QUAD_8, QUAD_9
-        integer*4 TETRA_4, TETRA_10, PYRA_5, PYRA_14
-        integer*4 PENTA_6, PENTA_15, PENTA_18
-        integer*4 HEXA_8, HEXA_20, HEXA_27
-        integer*4 MIXED, PYRA_13, NGON_n, NFACE_n
+        integer*8 NODE, BAR_2, BAR_3, TRI_3, TRI_6
+        integer*8 QUAD_4, QUAD_8, QUAD_9
+        integer*8 TETRA_4, TETRA_10, PYRA_5, PYRA_14
+        integer*8 PENTA_6, PENTA_15, PENTA_18
+        integer*8 HEXA_8, HEXA_20, HEXA_27
+        integer*8 MIXED, PYRA_13, NGON_n, NFACE_n
         character*32 ElementTypeName(0:23)
         parameter (NODE     =  2)
         parameter (BAR_2    =  3)
@@ -366,7 +366,7 @@
 !*      Zone types                                                     *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Structured, Unstructured
+        integer*8 Structured, Unstructured
         character*32 ZoneTypeName(0:3)
         parameter (Structured   =  2)
         parameter (Unstructured =  3)
@@ -375,7 +375,7 @@
 !*      Rigid Grid Motion types                                        *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 ConstantRate, VariableRate
+        integer*8 ConstantRate, VariableRate
         character*32 RigidGridMotionTypeName(0:3)
         parameter (ConstantRate = 2)
         parameter (VariableRate = 3)
@@ -384,7 +384,7 @@
 !*      Arbitrary Grid Motion types                                    *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 NonDeformingGrid, DeformingGrid
+        integer*8 NonDeformingGrid, DeformingGrid
         character*32 ArbitraryGridMotionTypeName(0:3)
         parameter (NonDeformingGrid = 2)
         parameter (DeformingGrid = 3)
@@ -393,7 +393,7 @@
 !*      Simulation type                                                *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 TimeAccurate, NonTimeAccurate
+        integer*8 TimeAccurate, NonTimeAccurate
         character*32 SimulationTypeName(0:3)
         parameter (TimeAccurate = 2)
         parameter (NonTimeAccurate = 3)
@@ -402,11 +402,11 @@
 !*      BC Property types                                              *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 Generic
+        integer*8 Generic
         character*32 WallFunctionTypeName(0:2)
         parameter (Generic = 2)
 
-        integer*4 BleedArea, CaptureArea
+        integer*8 BleedArea, CaptureArea
         character*32 AreaTypeName(0:3)
         parameter (BleedArea = 2)
         parameter (CaptureArea = 3)
@@ -415,8 +415,8 @@
 !*      Grid Connectivity Property types                               *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 
-        integer*4 AverageAll, AverageCircumferential, AverageRadial
-        integer*4 AverageI, AverageJ, AverageK
+        integer*8 AverageAll, AverageCircumferential, AverageRadial
+        integer*8 AverageI, AverageJ, AverageK
         character*32 AverageInterfaceTypeName(0:7)
         parameter (AverageAll = 2)
         parameter (AverageCircumferential = 3)

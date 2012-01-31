@@ -169,7 +169,8 @@ class CGNSOutputHandler
 	// TIME DEPENDENACE
 	// create BaseIterativeData
 		int nsteps=soltime.size();
-		const cgsize_t *nsteps_cg = &nsteps;
+		const cgsize_t nsteps_cg_tmp = soltime.size();
+		const cgsize_t *nsteps_cg = &nsteps_cg_tmp;
 
 		soltime_to_array();
 		solname_to_array();
@@ -185,7 +186,7 @@ class CGNSOutputHandler
 	// with time(1), solname(2) with time(2), and solname(3) with time(3))
 		//cgns_error_check(cg_goto(index_file,index_base,"ZoneIterativeData_t",1,"end"));
 		cgns_error_check(cg_goto(index_file,index_base,"Zone_t",index_zone,"ZoneIterativeData_t",1,"end"));
-		int idata[2];
+		cgsize_t idata[2];
 		idata[0] = STR_LENGTH+1;
 		idata[1] = nsteps;
 		cgns_error_check(cg_array_write("FlowSolutionPointers",Character,2,idata,solname_a));

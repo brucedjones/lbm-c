@@ -1,7 +1,7 @@
 #ifndef CGNSTYPES_F_H
 #define CGNSTYPES_F_H
 
-#define CG_BUILD_64BIT 0
+#define CG_BUILD_64BIT 1
 
 #if CG_BUILD_64BIT
 # define cgsize_t integer*8
