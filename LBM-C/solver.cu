@@ -84,7 +84,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
 	
 		// COLLISION
-		collision_functions[collision_type](&current_node, opp, ex, ey, omega, tau, B);
+		collision_functions[collision_type](&current_node, opp, ex, ey, omega, &tau, &B);
 
 		// COALESCED WRITE
 		__syncthreads();
