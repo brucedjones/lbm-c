@@ -1,7 +1,7 @@
 #ifndef CGNS_OUTPUT_HANDLER
 #define CGNS_OUTPUT_HANDLER
 
-#pragma comment(lib, "cgns/lib/cgns.lib")
+
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
@@ -9,8 +9,7 @@
 #include <vector>
 using namespace std;
 /* cgnslib.h file must be located in directory specified by -I during compile: */
-#include "cgns\include\cgnslib.h"
-#include "cgns\cgns_output_handler.cuh"
+
 
 #if CGNS_VERSION < 3100
 # define cgsize_t int

@@ -37,8 +37,13 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#pragma comment(lib, "cgns/lib/cgns.lib")
-#include "cgns\include\cgnslib.h"
+#ifdef _WIN64
+	#pragma comment(lib, "cgns/x64/lib/cgns.lib")
+	#include "cgns\x64\include\cgnslib.h"
+#else
+	#pragma comment(lib, "cgns/x86/lib/cgns.lib")
+	#include "cgns\x86\include\cgnslib.h"
+#endif
 
 #include <stdio.h>
 #include "data_types.cuh"
