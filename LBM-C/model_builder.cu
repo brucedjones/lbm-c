@@ -1,149 +1,38 @@
 #ifndef CGNS_OUTPUT_HANDLER
 #define CGNS_OUTPUT_HANDLER
 
-#pragma comment(lib, "cgns/lib/cgns.lib")
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include <sstream>
 #include <vector>
 using namespace std;
-/* cgnslib.h file must be located in directory specified by -I during compile: */
-#include "cgns\include\cgnslib.h"
-#include "cgns\cgns_output_handler.cuh"
-
-#if CGNS_VERSION < 3100
-# define cgsize_t int
-#else
-# if CG_BUILD_SCOPE
-#  error enumeration scoping needs to be off
-# endif
-#endif
 
 #define STR_LENGTH 31
 
-class CGNSOutputHandler
+class ModelBuilder
 {
+	int length[DIM];
+	// DEVICE VARIABLE DECLARATION
+	Lattice *lattice_device;
+	DomainArray *domain_arrays_device;
+	DomainConstant *domain_constants_device;
+	double **f_1_device, **f_2_device, *rho_device, **u_device, *boundary_value_device, *geometry_device, **force_device; 
+	int *boundary_type_device;
 
-	int ni_c,nj_c,nk_c;
-	int ni_v, nj_v, nk_v;
-	int vertex_num, cell_num;
-	float *x, *y, *z;
-	char *fname;
+	// HOST VARIABLE DECLARATION
+	Lattice *lattice_host, *lattice_device_prototype;
+	DomainArray *domain_arrays_host;
+	DomainConstant *domain_constants_host;
+	double **f_host, *rho_host, **u_host, *boundary_value_host, *geometry_host, **force_host;
+	int *boundary_type_host;
 
-	vector<int> soltime;
-	vector<string> solname;
-
-	int *soltime_a;
-	char *solname_a;
-
-	// CGNS variables
-	int index_file,index_base,index_zone,index_flow,index_field,index_coord;
-	int icelldim, iphysdim;
-
-	void create_file()
-	{
-		cgns_error_check(cg_open(fname,CG_MODE_WRITE,&index_file));
-		cgns_error_check(cg_close(index_file));
-	}
-
-	void open_file()
-	{
-/* open CGNS file for write */
-	   cgns_error_check(cg_open(fname,CG_MODE_MODIFY,&index_file));
-	}
-
-	void close_file()
-	{
-/* close CGNS file */
-		cgns_error_check(cg_close(index_file));
-	}
-
-	void write_base()
-	{
-		open_file();
-		/* create base (user can give any name) */
-		char basename[10];
-	    strcpy(basename,"Base");
-	    cgns_error_check(cg_base_write(index_file,basename,icelldim,iphysdim,&index_base));
-	    close_file();
-
-	    cout << endl << "Output Handler: CGNS output file " << fname << " succesfully initialised" << endl;
-	}
+	// SCALAR DECLARATION (PLATFORM AGNOSTIC)
+	double tau, residual;
+	double tolerance;
+	int domain_size, maxT, saveT, steadyT, collision_type;
 	
-	void write_grid()
-	{
-		int idx;
-
-		cgsize_t isize2d[3][2], isize3d[3][3];
-
-		allocate_grid_memory();
-		open_file();
-		
-		for (int k=0; k < nk_v; ++k)
-		{
-			for (int j=0; j < nj_v; ++j)
-			{
-				for (int i=0; i < ni_v; ++i)
-				{
-					idx = i+j*ni_v+k*ni_v*nj_v;
-					x[idx]=i;
-					y[idx]=j;
-					z[idx]=k;
-				}
-			}
-		}
-
-		// define zone name (user can give any name) 
-	    char zonename[33];
-		strcpy(zonename,"LBM-C Output Data");
-		
-		if(nk_c==0) {
-			// vertex size 
-		    isize2d[0][0]=ni_v;
-		    isize2d[0][1]=nj_v;
-		    // cell size 
-		    isize2d[1][0]=ni_c;
-		    isize2d[1][1]=nj_c;
-			// boundary vertex size (always zero for structured grids) 
-		    isize2d[2][0]=0;
-		    isize2d[2][1]=0;
-
-			// create zone 
-			cgns_error_check(cg_zone_write(index_file,index_base,zonename,*isize2d,Structured,&index_zone));
-		} else {
-			// vertex size 
-			isize3d[0][0]=ni_v;
-		    isize3d[0][1]=nj_v;
-			isize3d[0][2]=nk_v;
-			// cell size 
-			isize3d[1][0]=ni_c;
-		    isize3d[1][1]=nj_c;
-		    isize3d[1][2]=nk_c;
-			// boundary vertex size (always zero for structured grids) 
-		    isize3d[2][0]=0;
-		    isize3d[2][1]=0;
-		    isize3d[2][2]=0;
-
-			// create zone 
-			cgns_error_check(cg_zone_write(index_file,index_base,zonename,*isize3d,Structured,&index_zone));
-		}
-		
-	// write grid coordinates (user must use SIDS-standard names here) 
-	   cgns_error_check(cg_coord_write(index_file,index_base,index_zone,RealSingle,"CoordinateX",
-	       x,&index_coord));
-	   cgns_error_check(cg_coord_write(index_file,index_base,index_zone,RealSingle,"CoordinateY",
-	       y,&index_coord));
-	   if(nk_c!=0){
-	   cgns_error_check(cg_coord_write(index_file,index_base,index_zone,RealSingle,"CoordinateZ",
-	       z,&index_coord));
-	   }
-
-		close_file();
-		deallocate_grid_memory();
-
-		cout << endl << "Output Handler: Grid succesfully written to " << fname << endl;
-	}
+	void memory_allocator()
 
 	void allocate_grid_memory()
 	{

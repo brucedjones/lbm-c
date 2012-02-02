@@ -40,8 +40,13 @@ typedef struct
 	double F[DIM];
 } Node;
 
-// Boundary condition function pointers
+typedef struct
+{
+
+} Timing;
+
+// Solver function pointers for boundary conditions and collisions
 typedef void (*boundary_condition) (Node *, double *);
-typedef void (*collision) (Node *, int[9], int[9], int[9], double[9], double, double);
+typedef void (*collision) (Node *, int[Q], int[Q], int[Q], double[Q], double, double);
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef CGNS_OUTPUT_HANDLER
 #define CGNS_OUTPUT_HANDLER
 
-#pragma comment(lib, "cgns/lib/cgns.lib")
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
@@ -9,8 +8,6 @@
 #include <vector>
 using namespace std;
 /* cgnslib.h file must be located in directory specified by -I during compile: */
-#include "cgns\include\cgnslib.h"
-#include "cgns\cgns_output_handler.cuh"
 
 #if CGNS_VERSION < 3100
 # define cgsize_t int
@@ -29,7 +26,7 @@ class CGNSInputHandler
 
 	// CGNS variables
 	int index_file,index_base,index_zone,index_flow,index_field,index_coord;
-	int icelldim, iphysdim;
+	int icelldim, iphysdim, dim;
 
 	void open_file()
 	{
@@ -44,12 +41,6 @@ class CGNSInputHandler
 	{
 /* close CGNS file */
 		cgns_error_check(cg_close(index_file));
-	}
-
-	
-	void cgns_append_sol_field(double *field, char *name, int *index_field)
-	{
-		cgns_error_check(cg_field_write(index_file,index_base,index_zone,index_flow,RealDouble,name,field,index_field));
 	}
 
 	void cgns_error_check(int error_code)
@@ -70,10 +61,29 @@ public:
 
 	void read_field(double *data, char *label)
 	{
+		int num_arrays;
+
 		open_file();
-		//////////////////////neeed to do a cg_Array_read here
-		cgns_error_check(cg_array_read(index_file,index_base,index_zone,label,RealDouble,irmin,irmax,data)
-		cgns_error_check(cg_sol_write(index_file,index_base,index_zone,node_name_c, CellCenter,&index_flow));
+
+		cgns_error_check(cg_narrays(&num_arrays));
+
+		for(int i = 0; i<num_arrays; i++)
+		{
+			// recover dataset labels from input file
+			char *array_name
+			cg_array_info(i, array_name, void, void, void);
+
+			//check for match and read or error
+			if(*array_name == *label) 
+			{
+				cgns_error_check(ch_array_read(i,data));
+				break;
+			} else 
+			{
+				cout << endl << "Input Handler: " << label << " not found in file \"" << fname << "\"" << endl;
+				exit(-1);
+			}
+		}
 
 		close_file();
 
@@ -90,10 +100,12 @@ CGNSOutputHandler::CGNSInputHandler (char *input_filename, bool 2d)
 	{
 		icelldim=2;
 		iphysdim=2;
+		dim = 2;
 
 	} else {
 		icelldim=3;
 		iphysdim=3;
+		dim = 3;
 	}
 
 	open_file();
