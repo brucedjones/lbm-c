@@ -14,199 +14,173 @@ class ModelBuilder
 {
 	int length[DIM];
 	// DEVICE VARIABLE DECLARATION
-	Lattice *lattice_device;
-	DomainArray *domain_arrays_device;
-	DomainConstant *domain_constants_device;
-	double **f_1_device, **f_2_device, *rho_device, **u_device, *boundary_value_device, *geometry_device, **force_device; 
-	int *boundary_type_device;
+	Lattice *lattice_d;
+	DomainArray *domain_arrays_d;
+	DomainConstant *domain_constants_d;
+	double **f_1_d, **f_2_d, *rho_d, **u_d, *boundary_value_d, *geometry_d, **force_d; 
+	int *boundary_type_d;
 
 	// HOST VARIABLE DECLARATION
-	Lattice *lattice_host, *lattice_device_prototype;
-	DomainArray *domain_arrays_host;
-	DomainConstant *domain_constants_host;
-	double **f_host, *rho_host, **u_host, *boundary_value_host, *geometry_host, **force_host;
-	int *boundary_type_host;
+	Timing time_t;
+	Lattice *lattice_h, *lattice_d_prototype;
+	DomainArray *domain_arrays_h;
+	DomainConstant *domain_constants_h;
+	double **f_h, *rho_h, **u_h, *boundary_value_h, *geometry_h, **force_h;
+	int *boundary_type_h;
 
 	// SCALAR DECLARATION (PLATFORM AGNOSTIC)
 	double tau, residual;
 	double tolerance;
 	int domain_size, maxT, saveT, steadyT, collision_type;
+
+	// CONFIG FLAGS
+	bool zhou_he;
+	bool forcing;
+	bool is2D;
 	
 	void memory_allocator()
-
-	void allocate_grid_memory()
 	{
-		x = (float *) malloc(sizeof(float)*vertex_num);
-		y = (float *) malloc(sizeof(float)*vertex_num);
-		z = (float *) malloc(sizeof(float)*vertex_num);
-	}
+		int domain_data_size;
+		domain_data_size = domain_size*sizeof(double);
 
-	void deallocate_grid_memory()
-	{
-		free(x);
-		free(y);
-		free(z);
-	}
+		// Allocate container structures
+		combi_malloc<Lattice>(lattice_h, lattice_d, sizeof(Lattice));
+		combi_malloc<DomainArray>(domain_arrays_h, domain_arrays_d, sizeof(DomainArray));
+		combi_malloc<DomainConstant>(domain_constants_h, domain_constants_d, sizeof(DomainConstant));
 
-	void cgns_append_sol_field(double *field, char *name, int *index_field)
-	{
-		cgns_error_check(cg_field_write(index_file,index_base,index_zone,index_flow,RealDouble,name,field,index_field));
-	}
-
-	void write_iterative_data()
-	{
-	// TIME DEPENDENACE
-	// create BaseIterativeData
-		int nsteps=soltime.size();
-		const cgsize_t nsteps_cg_tmp = soltime.size();
-		const cgsize_t *nsteps_cg = &nsteps_cg_tmp;
-
-		soltime_to_array();
-		solname_to_array();
-
-		cgns_error_check(cg_biter_write(index_file,index_base,"TimeIterValues",nsteps));
-	// go to BaseIterativeData level and write time values
-		cgns_error_check(cg_goto(index_file,index_base,"BaseIterativeData_t",1,"end"));
-		cgns_error_check(cg_array_write("IterationValues",Integer,1,nsteps_cg,soltime_a));
-	// create ZoneIterativeData
-		cgns_error_check(cg_ziter_write(index_file,index_base,index_zone,"ZoneIterativeData_t"));
-	// go to ZoneIterativeData level and give info telling which
-	// flow solution corresponds with which time (solname(1) corresponds
-	// with time(1), solname(2) with time(2), and solname(3) with time(3))
-		//cgns_error_check(cg_goto(index_file,index_base,"ZoneIterativeData_t",1,"end"));
-		cgns_error_check(cg_goto(index_file,index_base,"Zone_t",index_zone,"ZoneIterativeData_t",1,"end"));
-		cgsize_t idata[2];
-		idata[0] = STR_LENGTH+1;
-		idata[1] = nsteps;
-		cgns_error_check(cg_array_write("FlowSolutionPointers",Character,2,idata,solname_a));
-
-	// add SimulationType
-		cgns_error_check(cg_simulation_type_write(index_file,index_base,TimeAccurate));
-		free_tmp_storage();
-	}
-
-	void soltime_to_array()
-	{
-		soltime_a = (int *)malloc(sizeof(int)*soltime.size());
-		for(int i = 0; i<soltime.size(); i++)
+		// Allocate required arrays
+		combi_malloc<double>(f_h, f_1_d, Q*sizeof(f_h));
+		cudasafe(cudaMalloc((void **)&df_2_d,Q*sizeof(f_h)), "Model Builder: Device memory allocation failed!");
+		for(int i=0;i<Q;i++)
 		{
-			soltime_a[i] = soltime.at(i);
+			combi_malloc<double>(f_h[i], f_1_d[i], Q*sizeof(f_h));
+			cudasafe(cudaMalloc((void **)&df_2_d[i],Q*sizeof(f_h)), "Model Builder: Device memory allocation failed!");
+		}
+		combi_malloc<double>(rho_h, rho_d, domain_data_size);
+		combi_malloc<double>(u_h, u_d, domain_data_size*DIM);
+		combi_malloc<double>(geometry_h, geometry_d, domain_data_size);
+		
+		
+		// Allocate option arrays
+		if(forcing) combi_malloc<double>(force_h, force_d, domain_data_size*DIM);
+		if(zhou_he)
+		{
+			combi_malloc<int>(boundary_type_h, boundary_type_d, domain_data_size);
+			combi_malloc<double>(boundary_value_h, boundary_value_d, domain_data_size);
 		}
 	}
 
-	void solname_to_array()
+	void memory_assembler()
 	{
-		char *name_tmp;
-		string name_tmp_s;
+		lattice_h->f_prev = f_h;
+		lattice_h->f_curr = f_h;
+		lattice_h->u = u_h;
+		lattice_h->rho = rho_h;
 
+		Lattice *lattice_d_tmp = (Lattice *)malloc(sizeof(Lattice));
+		lattice_d_tmp->f_prev = f_d;
+		lattice_d_tmp->f_curr = f_d;
+		lattice_d_tmp->u = u_d;
+		lattice_d_tmp->rho = rho_d;
+		cudasafe(cudaMemcpy(lattice_d, lattice_d_tmp, sizeof(Lattice),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 
-		//solname_a = (char **)malloc(soltime.size() * sizeof (char *));
-		//solname_a = (char *)malloc(soltime.size()*sizeof(char*));
-		solname_a = (char *)malloc(soltime.size()*sizeof(char*)*(STR_LENGTH+1));
-		for(int i = 0; i<soltime.size();i++)
+		domain_arrays_h->boundary_type = boundary_type_h;
+		domain_arrays_h->boundary_value = boundary_value_h;
+		domain_arrays_h->geometry = geometry_h;
+		domain_arrays_h->force = force_h;
+
+		DomainArray *domain_array_d_tmp = (DomainArray *)malloc(sizeof(DomainArray));
+		domain_arrays_d_tmp->boundary_type = boundary_type_d;
+		domain_arrays_d_tmp->boundary_value = boundary_value_d;
+		domain_arrays_d_tmp->geometry = geometry_d;
+		domain_arrays_d_tmp->force = force_d;
+		cudasafe(cudaMemcpy(domain_array_d, domain_array_d_tmp, sizeof(DomainArray),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+	}
+
+	void memory_loader()
+	{
+		CGNSInputHandler input_handler(fname_cgns, is2D);
+		input_handler.read_field(domain_arrays_h->geometry, 'Porosity');
+		cudasafe(cudaMemcpy(domain_arrays_d->geometry, domain_arrays_h->geometry, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		
+		if(forcing)
 		{
-			//solname_a[i] = (char *)malloc(STR_LENGTH*sizeof(char));
-			
-			name_tmp_s = solname.at(i);
+			char force_labels[3][33];
+			force_labels[1] = "ForceX";
+			force_labels[2] = "ForceY";
+			force_labels[3] = "ForceZ";
 
-			name_tmp = (char *)malloc(sizeof(char)*name_tmp_s.size()+1);
+			for(int d=0;d<DIM;d++)
+			{
+				input_handler.read_field(domain_arrays_h->force[d], &force_labels[d]);
+				cudasafe(cudaMemcpy(domain_arrays_d->force[d], domain_arrays_h->force[d], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+			}
+		}
 
-			std::copy(name_tmp_s.begin(), name_tmp_s.end(), name_tmp);
-			name_tmp[name_tmp_s.size()] = '\0';
+		if(zhou_he)
+		{
+			input_handler.read_field(domain_arrays_h->boundary_type, "BCType");
+			cudasafe(cudaMemcpy(domain_arrays_d->boundary_type, domain_arrays_h->boundary_type, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 
-			strcpy(&solname_a[i*(STR_LENGTH+1)],name_tmp);
+			input_handler.read_field(domain_arrays_h->boundary_value, "BCValue");
+			cudasafe(cudaMemcpy(domain_arrays_d->boundary_value, domain_arrays_h->boundary_value, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		}
 
+		if(static_ic)
+		{
+			load_static_IC();
 		}
 	}
 
-	void free_tmp_storage()
+void load_static_IC()
+{
+	int index_i;
+	double omega[Q];
+	LOAD_OMEGA(omega);
+	for(int i=0;i<Q;i++)
 	{
-		/*for(int i = 0; i<soltime.size();i++)
+		for(int index=0;index<(domain_size);index++)
 		{
-			free (solname_a[i]);
-		}*/
-		free (solname_a);
-		free (soltime_a);
+			lattice_h->f_curr[i][index] = 1.0*omega[i];
+			cudasafe(cudaMemcpy(lattice_d->f_curr[i], lattice_h->f_curr[i], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+			cudasafe(cudaMemcpy(lattice_d->f_prev[i], lattice_h->f_curr[i], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		}
+	}
+}
+
+	template<class T>
+	void combi_malloc(T *host_pointer, T *device_pointer, size_t size)
+	{
+		host_pointer = (T *)malloc(size);
+		cudasafe(cudaMalloc((void **)&device_pointer,size), "Model Builder: Device memory allocation failed!");
 	}
 
-	void cgns_error_check(int error_code)
+	void read_config()
 	{
-		if(error_code!=0)
-		{
-		const char *error_message = cg_get_error();
-		cout << error_message << endl;
-		getchar();
-		cg_error_exit();
-		}
 	}
 
 public:
-	CGNSOutputHandler (char *, int, int, int);
+	ModelBuilder (char *, int, int, int);
 
-	CGNSOutputHandler ();
+	ModelBuilder ();
 
-	void append_solution_output(int iter, int num_fields, double **data, char **labels)
+	get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_host, Timing time)
 	{
-		open_file();
+		lattice_host = lattice_h;
+		lattice_device = lattide_d;
+		domain_constants_host = domain_constants_h;
+		domain_constants_device = domain_constants_d;
+		domain_arrays_host = domain_arrays_h;
+		domain_arrays_device = domain_arrays_d;
+		time = time_t;
 
-		soltime.push_back(iter);
-
-		stringstream node_name;//create a stringstream
-		node_name << "Solution @ Time = " << iter;//add number to the stream
-		string node_name_s = node_name.str();
-		solname.push_back(node_name_s);
-
-		char * node_name_c = new char[node_name_s.size() + 1];
-		std::copy(node_name_s.begin(), node_name_s.end(), node_name_c);
-		node_name_c[node_name_s.size()] = '\0';
-
-		// create flow solution node
-		cgns_error_check(cg_sol_write(index_file,index_base,index_zone,node_name_c, CellCenter,&index_flow));
-
-		// write flow solution field
-		for(int n = 0; n<num_fields;n++)
-		{
-			cgns_append_sol_field(data[n], labels[n], &index_field);
-		}
-
-		// write time dependant data
-		write_iterative_data();
-
-		close_file();
-		cout << endl << "Output Handler: Solution @ Time = " << iter << " written" << endl;
 	}
 
 };
 
-CGNSOutputHandler::CGNSOutputHandler (char *output_filename, int length_x, int length_y, int length_z) 
+CGNSOutputHandler::CGNSOutputHandler (char *input_filename) 
 {
-	fname = output_filename;// = output_filename;
-
-	ni_c = length_x;
-	nj_c = length_y;
-	nk_c = length_z;
-
-	cell_num = ni_c*nj_c*nk_c;
-
-	ni_v = ni_c+1;
-	nj_v = nj_c+1;
-	nk_v = nk_c+1;
-
-	vertex_num = ni_v*nj_v*nk_v;
-
-	if(nk_c==0)
-	{
-		icelldim=2;
-		iphysdim=2;
-
-	} else {
-		icelldim=3;
-		iphysdim=3;
-	}
-
-	create_file();
-	write_base();
-	write_grid();
+	fname_config = input_filename;
 }
 
 CGNSOutputHandler::CGNSOutputHandler (){}
