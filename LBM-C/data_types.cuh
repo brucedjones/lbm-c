@@ -24,10 +24,13 @@ typedef struct
 typedef struct
 {
 	double tau;
+	int h;
+	int dt;
 	int length[DIM];
 	bool forcing;
-	bool zho_he;
+	int zhou_he;
 	int collision_type;
+	int init_type;
 } DomainConstant;
 
 typedef struct
@@ -41,11 +44,25 @@ typedef struct
 
 typedef struct
 {
-	int steady_state;
-	int output;
-	int screen_message;
 	int max;
+	int plot;
+	int screen;
+	int steady_check;
 } Timing;
+
+typedef struct
+{
+	bool u[DIM];
+	bool rho;
+	bool pressure;
+} OutputController;
+
+typedef struct
+{
+	char name[32];
+	char domain_fname[32];
+	char output_fname[32];
+} ProjectStrings;
 
 // Solver function pointers for boundary conditions and collisions
 typedef void (*boundary_condition) (Node *, double *);

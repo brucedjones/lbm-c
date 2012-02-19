@@ -1,11 +1,13 @@
-#ifndef CGNS_OUTPUT_HANDLER
-#define CGNS_OUTPUT_HANDLER
+#ifndef MODEL_BUILDER
+#define MODEL_BUILDER
 
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "infile_reader.cu"
+#include "cgns/cgns_input_handler.cu"
 using namespace std;
 
 #define STR_LENGTH 31
@@ -22,6 +24,8 @@ class ModelBuilder
 
 	// HOST VARIABLE DECLARATION
 	Timing time_t;
+	OutputController output_controller_t;
+	ProjectStrings project_t;
 	Lattice *lattice_h, *lattice_d_prototype;
 	DomainArray *domain_arrays_h;
 	DomainConstant *domain_constants_h;
@@ -33,20 +37,33 @@ class ModelBuilder
 	double tolerance;
 	int domain_size, maxT, saveT, steadyT, collision_type;
 
-	// CONFIG FLAGS
+	// CONFIG FLAGS AND STRINGS
+	char *fname_config;
 	bool zhou_he;
 	bool forcing;
 	bool is2D;
-	
-	void memory_allocator()
-	{
-		int domain_data_size;
-		domain_data_size = domain_size*sizeof(double);
 
+// Allocates memory for variables which are constant in size
+	void constant_size_allocator()
+	{
 		// Allocate container structures
 		combi_malloc<Lattice>(lattice_h, lattice_d, sizeof(Lattice));
 		combi_malloc<DomainArray>(domain_arrays_h, domain_arrays_d, sizeof(DomainArray));
 		combi_malloc<DomainConstant>(domain_constants_h, domain_constants_d, sizeof(DomainConstant));
+	}
+
+	void constant_loader()
+	{
+		InfileReader infile_reader(fname_config, project_t, domain_constants_h, time_t, output_controller_t);
+		//transfer domain_constants to device (cant think of a better place to put this)
+		cudasafe(cudaMemcpy(domain_constants_d, domain_constants_h, sizeof(DomainConstants),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+	}
+
+// Allocates memory for variables which have variable size due to problem geometry
+	void variable_size_allocator()
+	{
+		int domain_data_size;
+		domain_data_size = domain_size*sizeof(double);
 
 		// Allocate required arrays
 		combi_malloc<double>(f_h, f_1_d, Q*sizeof(f_h));
@@ -70,7 +87,7 @@ class ModelBuilder
 		}
 	}
 
-	void memory_assembler()
+	void variable_assembler()
 	{
 		lattice_h->f_prev = f_h;
 		lattice_h->f_curr = f_h;
@@ -97,12 +114,14 @@ class ModelBuilder
 		cudasafe(cudaMemcpy(domain_array_d, domain_array_d_tmp, sizeof(DomainArray),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 	}
 
-	void memory_loader()
+	void variable_loader()
 	{
+		// LOAD GEOMETRY
 		CGNSInputHandler input_handler(fname_cgns, is2D);
 		input_handler.read_field(domain_arrays_h->geometry, 'Porosity');
 		cudasafe(cudaMemcpy(domain_arrays_d->geometry, domain_arrays_h->geometry, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 		
+		// LOAD FORCES IF REQUIRED
 		if(forcing)
 		{
 			char force_labels[3][33];
@@ -117,6 +136,7 @@ class ModelBuilder
 			}
 		}
 
+		// LOAD ZHOU/HE VARIABLES IF REQUIRED
 		if(zhou_he)
 		{
 			input_handler.read_field(domain_arrays_h->boundary_type, "BCType");
@@ -132,7 +152,7 @@ class ModelBuilder
 		}
 	}
 
-void load_static_IC()
+	void load_static_IC()
 {
 	int index_i;
 	double omega[Q];
@@ -160,29 +180,37 @@ void load_static_IC()
 	}
 
 public:
-	ModelBuilder (char *, int, int, int);
+	ModelBuilder (char *);
 
 	ModelBuilder ();
 
-	get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_host, Timing time)
+	get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_host, Timing time, OutputController output_controller, ProjectStrings project)
 	{
 		lattice_host = lattice_h;
-		lattice_device = lattide_d;
+		lattice_device = lattice_d;
 		domain_constants_host = domain_constants_h;
 		domain_constants_device = domain_constants_d;
 		domain_arrays_host = domain_arrays_h;
 		domain_arrays_device = domain_arrays_d;
 		time = time_t;
-
+		output_controller = output_controller_t;
+		project = project_t;
 	}
 
 };
 
-CGNSOutputHandler::CGNSOutputHandler (char *input_filename) 
+ModelBuilder::ModelBuilder (char *input_filename) 
 {
 	fname_config = input_filename;
+	constant_size_allocator();
+	constant_loader();
+
+	variable_size_allocator();
+	variable_assembler();
+	variable_loader();
+
 }
 
-CGNSOutputHandler::CGNSOutputHandler (){}
+ModelBuilder::ModelBuilder (){}
 
 #endif

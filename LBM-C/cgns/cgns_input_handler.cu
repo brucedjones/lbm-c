@@ -1,5 +1,5 @@
-#ifndef CGNS_OUTPUT_HANDLER
-#define CGNS_OUTPUT_HANDLER
+#ifndef CGNS_INPUT_HANDLER
+#define CGNS_INPUT_HANDLER
 
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +55,7 @@ class CGNSInputHandler
 	}
 
 public:
-	CGNSInputHandler (char *, bool);
+	CGNSInputHandler (char *);
 
 	CGNSInputHandler ();
 
@@ -92,26 +92,24 @@ public:
 
 };
 
-CGNSOutputHandler::CGNSInputHandler (char *input_filename, bool 2d) 
+CGNSInputHandler::CGNSInputHandler (char *input_filename) 
 {
 	fname = input_filename;
 
-	if(2d)
-	{
-		icelldim=2;
-		iphysdim=2;
-		dim = 2;
-
-	} else {
+	#if DIM > 2
 		icelldim=3;
 		iphysdim=3;
 		dim = 3;
-	}
+	#else
+		icelldim=2;
+		iphysdim=2;
+		dim = 2;
+	#endif
 
 	open_file();
 
 }
 
-CGNSOutputHandler::CGNSOutputHandler (){}
+CGNSInputHandler::CGNSInputHandler (){}
 
 #endif
