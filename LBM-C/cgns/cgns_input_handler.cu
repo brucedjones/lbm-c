@@ -59,7 +59,8 @@ public:
 
 	CGNSInputHandler ();
 
-	void read_field(double *data, char *label)
+	template<class T>
+	void read_field(T *data, char *label)
 	{
 		int num_arrays;
 
@@ -70,13 +71,13 @@ public:
 		for(int i = 0; i<num_arrays; i++)
 		{
 			// recover dataset labels from input file
-			char *array_name
-			cg_array_info(i, array_name, void, void, void);
+			char *array_name;
+			cg_array_info(i, array_name, NULL, NULL, NULL);
 
 			//check for match and read or error
 			if(*array_name == *label) 
 			{
-				cgns_error_check(ch_array_read(i,data));
+				cgns_error_check(cg_array_read(i,data));
 				break;
 			} else 
 			{

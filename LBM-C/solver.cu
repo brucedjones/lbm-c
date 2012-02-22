@@ -13,8 +13,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 {
 	// Declare Variables
 	double omega[Q], B;
-	int i2d, ex[Q], ey[Q], opp[Q];
-	int2 length;
+	int i2d, ex[Q], ey[Q], opp[Q], length[DIM], domain_size;
 	Node current_node;
 
 	// Initialise variables
@@ -22,20 +21,33 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	LOAD_EY(ey);
 	LOAD_OMEGA(omega);
 	LOAD_OPP(opp);
-	current_node.rho = 0; current_node.ux = 0; current_node.uy = 0;
+	current_node.rho = 0; current_node.u[0] = 0; current_node.u[1] = 0;
+	#if DIM > 2
+		current_node.u[2] = 0;
+	#endif
 	
 	// Compute coordinates
 	int x = (blockDim.x*blockIdx.x)+threadIdx.x;
 	int y = (blockDim.y*blockIdx.y)+threadIdx.y;
 
 	// Load domain configuration
-	length.x = domain_constants->length.x;
-	length.y = domain_constants->length.y;
-	int domain_size = length.x*length.y;
+	length[0] = domain_constants->length[0];
+	length[1] = domain_constants->length[1];
+	#if DIM > 2
+		length[2] = domain_constants->length[2];
+	#endif
+
+	domain_size = 1;
+	#pragma unroll
+	for (int d=0;d<DIM;d++)
+	{
+		domain_size = domain_size*length[d];
+	}
+
 	double tau = domain_constants->tau;
-	int i2d_prime = x + y*length.x;
+	int i2d_prime = x + y*length[0];
 	
-	if(x<length.x && y<length.y)
+	if(x<length[0] && y<length[1])
 	{
 		// Set collision type and optional forces
 		// The type specified in domain_constants must be multiplied by two to match the listing
@@ -44,10 +56,14 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		int collision_modifier = 0;
 		if(domain_constants->forcing==true)
 		{
-			current_node.F[0] = domain_arrays->force[i2d_prime];
-			current_node.F[1] = domain_arrays->force[domain_size+i2d_prime];
-			if(current_node.F[0] > 0 || current_node.F[1] > 0) collision_modifier = 1;
+			#pragma unroll
+			for (int d=0;d<DIM;d++)
+			{
+				current_node.F[d] = domain_arrays->force[d][i2d_prime];
+				if(current_node.F[d]>0) collision_modifier = 1;
+			}
 		}
+
 		int collision_type = (domain_constants->collision_type*2)+collision_modifier;
 
 		// Load boundary condition
@@ -64,21 +80,21 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		{
 			target_x = x+ex[i]; target_y = y+ey[i];
 			//PERIODIC BOUNDARY
-			if(target_x>(length.x-1)) target_x = 0; if(target_x<0) target_x = length.x-1;
-			if(target_y>(length.y-1)) target_y = 0; if(target_y<0) target_y = length.y-1;
+			if(target_x>(length[0]-1)) target_x = 0; if(target_x<0) target_x = length[0]-1;
+			if(target_y>(length[1]-1)) target_y = 0; if(target_y<0) target_y = length[1]-1;
 	
-			i2d = (target_x + target_y*length.x)+opp[i]*(domain_size);
+			i2d = (target_x + target_y*length[0]);
 			
 			// UNCOALESCED READ
-			current_node.f[opp[i]] = lattice->f_prev[i2d];
+			current_node.f[opp[i]] = lattice->f_prev[opp[i]][i2d];
 	
 			current_node.rho += current_node.f[opp[i]];
-			current_node.ux += ex[opp[i]]*current_node.f[opp[i]];
-			current_node.uy += ey[opp[i]]*current_node.f[opp[i]];
+			current_node.u[0] += ex[opp[i]]*current_node.f[opp[i]];
+			current_node.u[1] += ey[opp[i]]*current_node.f[opp[i]];
 		}
 	
-		current_node.ux = current_node.ux/current_node.rho;
-		current_node.uy = current_node.uy/current_node.rho;
+		current_node.u[0] = current_node.u[0]/current_node.rho;
+		current_node.u[1] = current_node.u[1]/current_node.rho;
 	
 		// APPLY BOUNDARY CONDITION
 		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
@@ -90,17 +106,16 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		__syncthreads();
 		for(int i=0;i<Q;i++)
 		{
-			i2d = (x + y*length.x)+i*(domain_size);
-			lattice->f_curr[i2d] = current_node.f[i];
+			i2d = (x + y*length[0]);
+			lattice->f_curr[i][i2d] = current_node.f[i];
 		}
 
 		// STORE MACROS IF REQUIRED
 		if (store_macros)
 		{
-				i2d = (x + y*length.x);
-				lattice->ux[i2d] = current_node.ux;
-				lattice->uy[i2d] = current_node.uy;
-				lattice->u[i2d] = sqrt(current_node.ux*current_node.ux+current_node.uy*current_node.uy);
+				i2d = (x + y*length[0]);
+				lattice->u[0][i2d] = current_node.u[0];
+				lattice->u[1][i2d] = current_node.u[1];
 				lattice->rho[i2d] = current_node.rho;
 		} 
 	}

@@ -100,20 +100,10 @@ class InfileReader {
 				col_type = "BGK";
 				domain_constants->collision_type = 0;
 			}
-			if(line.find("NT")!=string::npos)
-			{
-				col_type = "NT";
-				domain_constants->collision_type = 1;
-			}
-			if(line.find("BGKPOR")!=string::npos)
-			{
-				col_type = "BGKPOR";
-				domain_constants->collision_type = 2;
-			}
 			if(line.find("NTPOR")!=string::npos)
 			{
 				col_type = "NTPOR";
-				domain_constants->collision_type = 3;
+				domain_constants->collision_type = 1;
 			}
 			stringstream(line) >> field_name;
 			cout << field_name << " = " << col_type << endl;

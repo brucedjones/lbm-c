@@ -31,6 +31,8 @@ typedef struct
 	int zhou_he;
 	int collision_type;
 	int init_type;
+	double residual;
+	double tolerance;
 } DomainConstant;
 
 typedef struct
