@@ -40,9 +40,21 @@
 #ifdef _WIN64
 	#pragma comment(lib, "cgns/x64/lib/cgns.lib")
 	#include "cgns\x64\include\cgnslib.h"
+	#pragma comment(lib, "HDF5/x64/lib/hdf5.lib")
+	#include "HDF5/x64/include/hdf5.h"
+	#pragma comment(lib, "HDF5/x64/lib/libszip.lib")
+	#include "HDF5/x64/include/szlib.h"
+	#pragma comment(lib, "HDF5/x64/lib/libzlib.lib")
+	#include "HDF5/x64/include/zlib.h"
 #else
 	#pragma comment(lib, "cgns/x86/lib/cgns.lib")
 	#include "cgns\x86\include\cgnslib.h"
+	#pragma comment(lib, "HDF5/x86/lib/hdf5.lib")
+	#include "HDF5/x86/include/hdf5.h"
+	#pragma comment(lib, "HDF5/x86/lib/libszip.lib")
+	#include "HDF5/x86/include/szlib.h"
+	#pragma comment(lib, "HDF5/x86/lib/libzlib.lib")
+	#include "HDF5/x86/include/zlib.h"
 #endif
 
 #include <stdio.h>
@@ -170,6 +182,10 @@ void setup(void)
 {
 	// Set cuda device to use
 	cudaSetDevice(0);
+
+	ModelBuilder tmpmb("test.lbmc");
+	model_builder = tmpmb;
+
 	model_builder.get_model(lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
