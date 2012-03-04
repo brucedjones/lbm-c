@@ -64,6 +64,7 @@
 #include "index.cuh"
 #include "model_builder.cu"
 #include "cgns/cgns_output_handler.cu"
+#include "cuda_util.cu"
 
 // Include THRUST libraries
 #include <thrust/device_vector.h>
@@ -183,15 +184,29 @@ void setup(void)
 	// Set cuda device to use
 	cudaSetDevice(0);
 
-	ModelBuilder tmpmb("test.lbmc");
-	model_builder = tmpmb;
+	// Allocate container structures
+	combi_malloc<Lattice>(&lattice_host, &lattice_device, sizeof(Lattice));
+	combi_malloc<DomainArray>(&domain_arrays_host, &domain_arrays_device, sizeof(DomainArray));
+	combi_malloc<DomainConstant>(&domain_constants_host, &domain_constants_device, sizeof(DomainConstant));
+	combi_malloc<OutputController>(&output_controller_host, &output_controller_device, sizeof(OutputController));
+	domain_constants_host = (DomainConstant *)malloc(sizeof(DomainConstant));
+	times = (Timing *)malloc(sizeof(Timing));
+	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
+	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	model_builder.get_model(lattice_host, lattice_device,
+	ModelBuilder tmpmb("test.lbmc", lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,
 		times, project);
-	int z_len = 0;
+	model_builder = tmpmb;
+
+	/*model_builder.get_model(lattice_host, lattice_device,
+		domain_constants_host, domain_constants_device,
+		domain_arrays_host, domain_arrays_device,
+		output_controller_host, output_controller_device,
+		times, project);*/
+	int z_len = 1;
 	#if DIM > 2
 		z_len = domain_constants_host->length[2];
 	#endif
@@ -199,21 +214,7 @@ void setup(void)
 	output_handler = tmp;
 }
 
-// ERROR CHECKING FOR MEMORY ALLOCATION
-void cudasafe( cudaError_t error, char* message)
-{
-   if(error!=cudaSuccess) { fprintf(stderr,"ERROR: %s : %s\n",message,cudaGetErrorString(error)); exit(-1); }
-}
 
-// ERROR CHECKING FOR KERNEL EXECUTION
-void Check_CUDA_Error(const char *message)
-{
-   cudaError_t error = cudaGetLastError();
-   if(error!=cudaSuccess) {
-      fprintf(stderr,"ERROR: %s: %s\n", message, cudaGetErrorString(error) );
-      exit(-1);
-   }                         
-}
 
 // COPIES f_i DATA FROM DEVICE TO HOST AND COMPUTERS MACROSCOPIC VALUES ON HOST, THIS DATA
 // IS THEN WRITTEN TO THE OUTPUT FILE
@@ -227,10 +228,26 @@ void output_macros(int time)
 	#if DIM > 2
 		domain_size = domain_size*domain_constants_host->length[2]
 	#endif
+
+	Lattice lattice_tmp;
+
+	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	
+	double *u_tmp[DIM];
+	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
+	for(int d=0;d<DIM;d++)
+	{
+		cudasafe(cudaMemcpy(lattice_host->u[d], u_tmp[d], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	}
+
+	double *rho_tmp;
+	cudasafe(cudaMemcpy(lattice_host->rho, lattice_tmp.rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
 	// Copy data from device to host
-	cudasafe(cudaMemcpy(lattice_host->rho, lattice_device->rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
-	cudasafe(cudaMemcpy(lattice_host->u[0], lattice_device->u[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
-	cudasafe(cudaMemcpy(lattice_host->u[1], lattice_device->u[1], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
+	//cudasafe(cudaMemcpy(lattice_host->rho, lattice_device->rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
+	//cudasafe(cudaMemcpy(lattice_host->u[0], lattice_device->u[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
+	//cudasafe(cudaMemcpy(lattice_host->u[1], lattice_device->u[1], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
 
 
 	char *output_file;
@@ -287,6 +304,7 @@ void iterate(void)
 
 	// ITERATE ONCE
 	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, domain_constants_device, store_macros);
+	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER

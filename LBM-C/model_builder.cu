@@ -10,6 +10,7 @@
 #include "cgns/cgns_input_handler.cu"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "cuda_util.cu"
 using namespace std;
 
 #define STR_LENGTH 31
@@ -50,13 +51,13 @@ class ModelBuilder
 	void constant_size_allocator()
 	{
 		// Allocate container structures
-		combi_malloc<Lattice>(&lattice_h, &lattice_d, sizeof(Lattice));
-		combi_malloc<DomainArray>(&domain_arrays_h, &domain_arrays_d, sizeof(DomainArray));
-		combi_malloc<DomainConstant>(&domain_constants_h, &domain_constants_d, sizeof(DomainConstant));
-		combi_malloc<OutputController>(&output_controller_h, &output_controller_d, sizeof(OutputController));
+		//combi_malloc<Lattice>(&lattice_h, &lattice_d, sizeof(Lattice));
+		//combi_malloc<DomainArray>(&domain_arrays_h, &domain_arrays_d, sizeof(DomainArray));
+		//combi_malloc<DomainConstant>(&domain_constants_h, &domain_constants_d, sizeof(DomainConstant));
+		//combi_malloc<OutputController>(&output_controller_h, &output_controller_d, sizeof(OutputController));
 		//domain_constants_h = (DomainConstant *)malloc(sizeof(DomainConstant));
-		time_t = (Timing *)malloc(sizeof(Timing));
-		project_t = (ProjectStrings *)malloc(sizeof(ProjectStrings));
+		//time_t = (Timing *)malloc(sizeof(Timing));
+		//project_t = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	}
 
 	void constant_loader()
@@ -219,15 +220,8 @@ class ModelBuilder
 	}
 }
 
-	template<class T>
-	void combi_malloc(T **host_pointer, T **device_pointer, size_t size)
-	{
-		*host_pointer = (T *)malloc(size);
-		cudasafe(cudaMalloc((void **)&*device_pointer,size), "Model Builder: Device memory allocation failed!");
-	}
-
 public:
-	ModelBuilder (char *);
+	ModelBuilder (char *, Lattice*, Lattice*, DomainConstant*, DomainConstant*, DomainArray*, DomainArray*, OutputController*, OutputController*, Timing*, ProjectStrings*);
 
 	ModelBuilder ();
 
@@ -247,8 +241,19 @@ public:
 
 };
 
-ModelBuilder::ModelBuilder (char *input_filename) 
+ModelBuilder::ModelBuilder (char *input_filename, Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project) 
 {
+	lattice_h= lattice_host;
+	lattice_d= lattice_device;
+	domain_constants_h= domain_constants_host;
+	domain_constants_d= domain_constants_device;
+	domain_arrays_h= domain_arrays_host;
+	domain_arrays_d= domain_arrays_device;
+	output_controller_h= output_controller_host;
+	output_controller_d = output_controller_device;
+	time_t = time;
+	project_t = project;
+
 	fname_config = input_filename;
 	constant_size_allocator();
 	constant_loader();

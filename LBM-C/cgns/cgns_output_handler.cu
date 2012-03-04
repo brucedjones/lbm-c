@@ -42,6 +42,7 @@ class CGNSOutputHandler
 
 	void create_file()
 	{
+		cg_set_file_type(CG_FILE_ADF);
 		cgns_error_check(cg_open(fname,CG_MODE_WRITE,&index_file));
 		cgns_error_check(cg_close(index_file));
 	}
@@ -79,16 +80,24 @@ class CGNSOutputHandler
 		allocate_grid_memory();
 		open_file();
 		
-		for (int k=0; k < nk_v; ++k)
+		for (int k=0; k < nk_v; k++)
 		{
-			for (int j=0; j < nj_v; ++j)
+			for (int j=0; j < nj_v; j++)
 			{
-				for (int i=0; i < ni_v; ++i)
+				for (int i=0; i < ni_v; i++)
 				{
-					idx = i+j*ni_v+k*ni_v*nj_v;
-					x[idx]=i;
-					y[idx]=j;
-					z[idx]=k;
+					if(nk_c==1)
+					{
+						idx = i+j*ni_v;
+						x[idx]=i;
+						y[idx]=j;
+					} else {
+						idx = i+j*ni_v+k*ni_v*nj_v;
+						x[idx]=i;
+						y[idx]=j;
+						z[idx]=k;
+					}
+					
 				}
 			}
 		}
@@ -97,7 +106,7 @@ class CGNSOutputHandler
 	    char zonename[33];
 		strcpy(zonename,"LBM-C Output Data");
 		
-		if(nk_c==0) {
+		if(nk_c==1) {
 			// vertex size 
 		    isize2d[0][0]=ni_v;
 		    isize2d[0][1]=nj_v;
@@ -133,7 +142,7 @@ class CGNSOutputHandler
 	       x,&index_coord));
 	   cgns_error_check(cg_coord_write(index_file,index_base,index_zone,RealSingle,"CoordinateY",
 	       y,&index_coord));
-	   if(nk_c!=0){
+	   if(nk_c!=1){
 	   cgns_error_check(cg_coord_write(index_file,index_base,index_zone,RealSingle,"CoordinateZ",
 	       z,&index_coord));
 	   }
@@ -302,16 +311,18 @@ CGNSOutputHandler::CGNSOutputHandler (char *output_filename, int length_x, int l
 	nj_v = nj_c+1;
 	nk_v = nk_c+1;
 
-	vertex_num = ni_v*nj_v*nk_v;
+	
 
-	if(nk_c==0)
+	if(nk_c==1)
 	{
 		icelldim=2;
 		iphysdim=2;
+		vertex_num = ni_v*nj_v;
 
 	} else {
 		icelldim=3;
 		iphysdim=3;
+		vertex_num = ni_v*nj_v*nk_v;
 	}
 
 	create_file();

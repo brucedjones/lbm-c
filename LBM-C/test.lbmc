@@ -22,7 +22,7 @@ ZhouHe		1	#(0 = No, 1 = Pressure, 2 = Velocity, 4 = Both)
 Init		0	#(0 = Static Equilibrium, 1 = Equilibrium velocity/pressure Field, 2 = Restart)
 
 #===TIMING DATA===#
-MaxT		50000
+MaxT		5000
 FileOut		500
 ScreenMes	50
 SteadyCheck	0

@@ -38,7 +38,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	#endif
 
 	domain_size = 1;
-	#pragma unroll
+	//#pragma unroll
 	for (int d=0;d<DIM;d++)
 	{
 		domain_size = domain_size*length[d];
@@ -56,7 +56,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		int collision_modifier = 0;
 		if(domain_constants->forcing==true)
 		{
-			#pragma unroll
+			//#pragma unroll
 			for (int d=0;d<DIM;d++)
 			{
 				current_node.F[d] = domain_arrays->force[d][i2d_prime];
