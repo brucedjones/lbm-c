@@ -68,6 +68,6 @@ typedef struct
 
 // Solver function pointers for boundary conditions and collisions
 typedef void (*boundary_condition) (Node *, double *);
-typedef void (*collision) (Node *, int *, int *, int *, double *, double *, double *);
+typedef void (*collision) (Node *, int *, int [DIM][Q], double *, double *, double *);
 
 #endif

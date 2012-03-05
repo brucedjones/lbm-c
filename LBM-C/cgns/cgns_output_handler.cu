@@ -42,7 +42,7 @@ class CGNSOutputHandler
 
 	void create_file()
 	{
-		cg_set_file_type(CG_FILE_ADF);
+		cg_set_file_type(CG_FILE_ADF2);
 		cgns_error_check(cg_open(fname,CG_MODE_WRITE,&index_file));
 		cgns_error_check(cg_close(index_file));
 	}

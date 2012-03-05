@@ -13,12 +13,12 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 {
 	// Declare Variables
 	double omega[Q], B;
-	int i2d, ex[Q], ey[Q], opp[Q], length[DIM], domain_size;
+	int ixd, target_ixd, e[DIM][Q], opp[Q], length[DIM], coord[DIM], domain_size;
+	int i, d;
 	Node current_node;
 
 	// Initialise variables
-	LOAD_EX(ex);
-	LOAD_EY(ey);
+	LOAD_E(e);
 	LOAD_OMEGA(omega);
 	LOAD_OPP(opp);
 	current_node.rho = 0; current_node.u[0] = 0; current_node.u[1] = 0;
@@ -27,8 +27,11 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	#endif
 	
 	// Compute coordinates
-	int x = (blockDim.x*blockIdx.x)+threadIdx.x;
-	int y = (blockDim.y*blockIdx.y)+threadIdx.y;
+	coord[0] = (blockDim.x*blockIdx.x)+threadIdx.x;
+	coord[1] = (blockDim.y*blockIdx.y)+threadIdx.y;
+	#if DIM>2
+		coord[2] = (blockDim.z*blockIdx.z)+threadIdx.z;
+	#endif
 
 	// Load domain configuration
 	length[0] = domain_constants->length[0];
@@ -37,17 +40,26 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		length[2] = domain_constants->length[2];
 	#endif
 
+	#if DIM > 2
+		ixd = (coord[0] + coord[1]*length[0] + coord[2]*length[0]*length[1]);
+	#else
+		ixd = (coord[0] + coord[1]*length[0]);
+	#endif
+
 	domain_size = 1;
-	//#pragma unroll
+	#pragma unroll
 	for (int d=0;d<DIM;d++)
 	{
 		domain_size = domain_size*length[d];
 	}
 
 	double tau = domain_constants->tau;
-	int i2d_prime = x + y*length[0];
 	
-	if(x<length[0] && y<length[1])
+	#if DIM > 2
+		if(coord[0]<length[0] && coord[1]<length[1] && coord[2]<length[2])
+	#else
+		if(coord[0]<length[0] && coord[1]<length[1])
+	#endif
 	{
 		// Set collision type and optional forces
 		// The type specified in domain_constants must be multiplied by two to match the listing
@@ -57,9 +69,10 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		if(domain_constants->forcing==true)
 		{
 			//#pragma unroll
+			#pragma unroll
 			for (int d=0;d<DIM;d++)
 			{
-				current_node.F[d] = domain_arrays->force[d][i2d_prime];
+				current_node.F[d] = domain_arrays->force[d][ixd];
 				if(current_node.F[d]>0) collision_modifier = 1;
 			}
 		}
@@ -67,56 +80,72 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		int collision_type = (domain_constants->collision_type*2)+collision_modifier;
 
 		// Load boundary condition
-		int boundary_type = domain_arrays->boundary_type[i2d_prime];
-		double boundary_value = domain_arrays->boundary_value[i2d_prime];
+		int boundary_type = domain_arrays->boundary_type[ixd];
+		double boundary_value = domain_arrays->boundary_value[ixd];
 	
 		// Load Geometry
-		B = domain_arrays->geometry[i2d_prime];
+		B = domain_arrays->geometry[ixd];
 		if(B==1) collision_type = 4;
 	
 		// STREAMING - UNCOALESCED READ
-		int target_x, target_y;
-		for(int i = 0; i<Q; i++)
+		int target_coord[DIM];
+		#pragma unroll
+		for(i = 0; i<Q; i++)
 		{
-			target_x = x+ex[i]; target_y = y+ey[i];
-			//PERIODIC BOUNDARY
-			if(target_x>(length[0]-1)) target_x = 0; if(target_x<0) target_x = length[0]-1;
-			if(target_y>(length[1]-1)) target_y = 0; if(target_y<0) target_y = length[1]-1;
-	
-			i2d = (target_x + target_y*length[0]);
+			#pragma unroll
+			for(d=0; d<DIM; d++)
+			{
+				target_coord[d] = coord[d]+e[d][i];
+				if(target_coord[d]>(length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = length[0]-1;
+			}
+
+			#if DIM > 2
+				target_ixd = (target_coord[0] + target_coord[1]*length[0] + target_coord[2]*length[0]*length[1]);
+			#else
+				target_ixd = (target_coord[0] + target_coord[1]*length[0]);
+			#endif
+				
 			
 			// UNCOALESCED READ
-			current_node.f[opp[i]] = lattice->f_prev[opp[i]][i2d];
+			current_node.f[opp[i]] = lattice->f_prev[opp[i]][target_ixd];
 	
 			current_node.rho += current_node.f[opp[i]];
-			current_node.u[0] += ex[opp[i]]*current_node.f[opp[i]];
-			current_node.u[1] += ey[opp[i]]*current_node.f[opp[i]];
+			#pragma unroll
+			for (d = 0; d<DIM; d++)
+			{
+				current_node.u[d] += e[d][opp[i]]*current_node.f[opp[i]];
+			}
 		}
-	
-		current_node.u[0] = current_node.u[0]/current_node.rho;
-		current_node.u[1] = current_node.u[1]/current_node.rho;
+
+		#pragma unroll
+		for (d = 0; d<DIM; d++)
+		{
+			current_node.u[d] = current_node.u[d]/current_node.rho;
+		}
 	
 		// APPLY BOUNDARY CONDITION
 		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
 	
 		// COLLISION
-		collision_functions[collision_type](&current_node, opp, ex, ey, omega, &tau, &B);
+		collision_functions[collision_type](&current_node, opp, e, omega, &tau, &B);
 
 		// COALESCED WRITE
 		__syncthreads();
+		#pragma unroll
 		for(int i=0;i<Q;i++)
 		{
-			i2d = (x + y*length[0]);
-			lattice->f_curr[i][i2d] = current_node.f[i];
+			lattice->f_curr[i][ixd] = current_node.f[i];
 		}
 
 		// STORE MACROS IF REQUIRED
 		if (store_macros)
 		{
-				i2d = (x + y*length[0]);
-				lattice->u[0][i2d] = current_node.u[0];
-				lattice->u[1][i2d] = current_node.u[1];
-				lattice->rho[i2d] = current_node.rho;
+			#pragma unroll
+			for (d = 0; d<DIM; d++)
+			{
+				lattice->u[d][ixd] = current_node.u[d];
+			}
+			lattice->rho[ixd] = current_node.rho;
 		} 
 	}
 }
