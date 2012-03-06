@@ -9,6 +9,8 @@
 #include "data_types.cuh"
 #include "cuda_runtime.h"
 
+__device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
+
 __device__ __noinline__ void zh_pressure_x(Node *current_node, double *rho_boundary)
 {
 	// COMPUTE MACROS

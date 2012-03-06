@@ -5,10 +5,6 @@
 #include "d2q9_boundary.cu"
 #include "collision.cu"
 
-// LIST OF AVAILABLE BOUNDRY TYPES AND COLLISION FUNCTIONS
-__device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
-__device__ collision collision_functions[5] = { bgk_collision, guo_bgk_collision, ntpor_collision, guo_ntpor_collision, bounceback};
-
 __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant *domain_constants, bool store_macros)
 {
 	// Declare Variables
@@ -34,26 +30,18 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	#endif
 
 	// Load domain configuration
+	double tau = domain_constants->tau;
 	length[0] = domain_constants->length[0];
 	length[1] = domain_constants->length[1];
 	#if DIM > 2
 		length[2] = domain_constants->length[2];
-	#endif
-
-	#if DIM > 2
 		ixd = (coord[0] + coord[1]*length[0] + coord[2]*length[0]*length[1]);
+		domain_size = length[0]*length[1]*length[2];
 	#else
 		ixd = (coord[0] + coord[1]*length[0]);
+		domain_size = length[0]*length[1];
 	#endif
-
-	domain_size = 1;
-	#pragma unroll
-	for (int d=0;d<DIM;d++)
-	{
-		domain_size = domain_size*length[d];
-	}
-
-	double tau = domain_constants->tau;
+	
 	
 	#if DIM > 2
 		if(coord[0]<length[0] && coord[1]<length[1] && coord[2]<length[2])
@@ -70,7 +58,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		{
 			//#pragma unroll
 			#pragma unroll
-			for (int d=0;d<DIM;d++)
+			for (d=0;d<DIM;d++)
 			{
 				current_node.F[d] = domain_arrays->force[d][ixd];
 				if(current_node.F[d]>0) collision_modifier = 1;

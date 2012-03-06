@@ -9,6 +9,8 @@
 #include "data_types.cuh"
 #include "cuda_runtime.h"
 
+__device__ collision collision_functions[5] = { bgk_collision, guo_bgk_collision, ntpor_collision, guo_ntpor_collision, bounceback};
+
 __device__ inline double u_square(Node *current_node)
 {
 	double value = 0;
