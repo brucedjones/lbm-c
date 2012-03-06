@@ -2,8 +2,15 @@
 #define SOLVER
 
 #include "solver.cuh"
-#include "d2q9_boundary.cu"
 #include "collision.cu"
+
+#ifdef D2Q9
+	#include "boundary_conditions/d2q9_boundary.cu"
+#endif
+
+#ifdef D3Q15
+	#include "boundary_conditions/d3q15_boundary.cu"
+#endif
 
 __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant *domain_constants, bool store_macros)
 {

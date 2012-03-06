@@ -2,11 +2,11 @@
 #define D2Q9_BOUNDARY
 
 // Necessary includes
-#include "macros.cu"
+#include "../macros.cu"
 #include "d2q9_boundary.cuh"
 
 // These files are only included to remove squiggly red lines in VS2010
-#include "data_types.cuh"
+#include "../data_types.cuh"
 #include "cuda_runtime.h"
 
 __device__ boundary_condition boundary_conditions[2] = { zh_pressure_x, zh_pressure_X};
