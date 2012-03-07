@@ -299,6 +299,11 @@ void iterate(void)
 	blocks.y = NUM_THREADS_DIM_Y;
 	blocks.z = 1;
 
+	#if DIM >2
+		threads.z = (int)ceilf((float)domain_constants_host->length[2]/(float)NUM_THREADS_DIM_Z);;
+		blocks.z = NUM_THREADS_DIM_Z;
+	#endif
+
 	dim3 grid_dim = dim3(threads.x,threads.y,threads.z);
     dim3 block_dim = dim3(blocks.x,blocks.y,blocks.z);
 
