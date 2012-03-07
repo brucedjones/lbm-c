@@ -103,7 +103,6 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 			
 			// UNCOALESCED READ
 			current_node.f[opp[i]] = lattice->f_prev[opp[i]][target_ixd];
-	
 			current_node.rho += current_node.f[opp[i]];
 			#pragma unroll
 			for (d = 0; d<DIM; d++)

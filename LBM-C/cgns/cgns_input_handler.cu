@@ -74,7 +74,7 @@ public:
 		min[2] = 1;
 		max[0] = length[0];
 		max[1] = length[1];
-		max[2] = length[3];
+		max[2] = length[2];
 
 		open_file();
 
@@ -113,7 +113,7 @@ CGNSInputHandler::CGNSInputHandler (char *input_filename, int length_in[DIM])
 	length[1] = length_in[1];
 
 	#if DIM > 2
-		length[2] = length_in[2]
+		length[2] = length_in[2];
 	#else
 		length[2] = 1;
 	#endif

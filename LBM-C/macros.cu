@@ -1,7 +1,8 @@
 #ifndef MACROS
 #define MACROS
 
-#define D2Q9
+#define D3Q15
+//#define D2Q9
 
 #ifdef D2Q9
 
@@ -30,12 +31,12 @@
 						e[1][0]= 0;e[1][1]= 0;e[1][2]= 0;e[1][3]= 1;e[1][4]=-1;e[1][5]= 0;e[1][6]= 0;e[1][7]= 1;e[1][8]=-1;e[1][9]= 1;e[1][10]=-1;e[1][11]=-1;e[1][12]= 1;e[1][13]=-1;e[1][14]= 1;  \
 						e[2][0]= 0;e[2][1]= 0;e[2][2]= 0;e[2][3]= 0;e[2][4]= 0;e[2][5]= 1;e[2][6]=-1;e[2][7]= 1;e[2][8]=-1;e[2][9]=-1;e[2][10]= 1;e[2][11]= 1;e[2][12]=-1;e[2][13]=-1;e[2][14]= 1;  \
 					  }
-	#define LOAD_OMEGA(omega) {omega[0]=2.0/7.0;omega[1]=1.0/9.0;omega[2]=1.0/9.0;omega[3]=1.0/9.0;omega[4]=1.0/9.0;omega[5]=1.0/9.0;omega[6]1.0/9.0;omega[7]=1.0/72.0;omega[8]=1.0/72.0;omega[9]=1.0/72.0;omega[10]=1.0/72.0;omega[11]=1.0/72.0;omega[12]=1.0/72.0;omega[13]=1.0/72.0;omega[14]=1.0/72.0;}
+	#define LOAD_OMEGA(omega) {omega[0]=2.0/7.0;omega[1]=1.0/9.0;omega[2]=1.0/9.0;omega[3]=1.0/9.0;omega[4]=1.0/9.0;omega[5]=1.0/9.0;omega[6]=1.0/9.0;omega[7]=1.0/72.0;omega[8]=1.0/72.0;omega[9]=1.0/72.0;omega[10]=1.0/72.0;omega[11]=1.0/72.0;omega[12]=1.0/72.0;omega[13]=1.0/72.0;omega[14]=1.0/72.0;}
 	#define LOAD_OPP(opp) {opp[0]=0;opp[1]=2;opp[2]=1;opp[3]=4;opp[4]=3;opp[5]=6;opp[6]=5;opp[7]=8;opp[8]=7;opp[9]=10;opp[10]=9;opp[11]=12;opp[12]=11;opp[13]=14;opp[14]=13;}
 
 	#define NUM_THREADS_DIM_X 32
 	#define NUM_THREADS_DIM_Y 4
-	#define NUM_THREADS_DIM_Z 4
+	#define NUM_THREADS_DIM_Z 2
 
 #endif
 

@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	printf("X-Length:		%d\n", domain_constants_host->length[0]);
 	printf("Y-Length:		%d\n", domain_constants_host->length[1]);
 	#if DIM > 2
-		printf("Z-Length:		%d\n", domain_constants_host->length[3]);
+		printf("Z-Length:		%d\n", domain_constants_host->length[2]);
 	#endif
 	printf("Relaxation Time (Tau):	%f\n", domain_constants_host->tau);
 	printf("\nPress return to continue...");
@@ -194,7 +194,7 @@ void setup(void)
 	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	ModelBuilder tmpmb("test.lbmc", lattice_host, lattice_device,
+	ModelBuilder tmpmb("test3d.lbmc", lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,
@@ -226,7 +226,7 @@ void output_macros(int time)
 {
 	int domain_size = domain_constants_host->length[0]*domain_constants_host->length[1];
 	#if DIM > 2
-		domain_size = domain_size*domain_constants_host->length[2]
+		domain_size = domain_size*domain_constants_host->length[2];
 	#endif
 
 	Lattice lattice_tmp;
@@ -277,10 +277,11 @@ void output_macros(int time)
 
 	output_handler.append_solution_output(time,fields,data,labels);
 
-	int i2d, i, j;
+	int i2d, i, j, k;
 	i = 0;
 	j = domain_constants_host->length[1]/2;
-	i2d = i+j*domain_constants_host->length[0];
+	k = domain_constants_host->length[2]/2;
+	i2d = i+j*domain_constants_host->length[0]+k*domain_constants_host->length[0]*domain_constants_host->length[1];
 	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->u[0][i2d]<< "; uY = " << lattice_host->u[1][i2d] << "; resid = " << domain_constants_host->residual << endl;
 }
 
@@ -307,6 +308,8 @@ void iterate(void)
 	dim3 grid_dim = dim3(threads.x,threads.y,threads.z);
     dim3 block_dim = dim3(blocks.x,blocks.y,blocks.z);
 
+	cudaThreadSynchronize();
+	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// ITERATE ONCE
 	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, domain_constants_device, store_macros);
 	cudaThreadSynchronize();
