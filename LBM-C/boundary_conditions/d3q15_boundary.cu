@@ -1,5 +1,5 @@
-#ifndef D2Q9_BOUNDARY
-#define D2Q9_BOUNDARY
+#ifndef D3Q15_BOUNDARY
+#define D3Q15_BOUNDARY
 
 // Necessary includes
 #include "../macros.cu"
@@ -32,9 +32,6 @@ __device__ __noinline__ void zh_pressure_X(Node *current_node, double *rho_bound
 {
 	// COMPUTE MACROS
 	current_node->rho = *rho_boundary;
-
-	ux(:,out_x,1:ly, 1:lz) = -1+(1./rho(:,out_x,1:ly, 1:lz)).*(sum(fIn([0,3,4,5,6],out_x,1:ly, 1:lz))+2*sum(fIn([1,7,9,11,13],out_x,1:ly, 1:lz)));
-   
 	current_node->u[0] = -1.0+((1.0/current_node->rho)*(current_node->f[0]+current_node->f[3]+current_node->f[4]+current_node->f[5]+current_node->f[6]+2.0*(current_node->f[1]+current_node->f[7]+current_node->f[9]+current_node->f[11]+current_node->f[13])));
 	current_node->u[1] = 0.0;
 	current_node->u[2] = 0.0;
