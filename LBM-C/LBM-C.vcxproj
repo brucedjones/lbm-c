@@ -114,6 +114,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <GPUDebugInfo>true</GPUDebugInfo>
+      <PtxAsOptionV>true</PtxAsOptionV>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

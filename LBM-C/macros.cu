@@ -1,8 +1,8 @@
 #ifndef MACROS
 #define MACROS
 
-#define D3Q15
-//#define D2Q9
+//#define D3Q15
+#define D2Q9
 
 #ifdef D2Q9
 
@@ -36,7 +36,7 @@
 
 	#define NUM_THREADS_DIM_X 32
 	#define NUM_THREADS_DIM_Y 4
-	#define NUM_THREADS_DIM_Z 2
+	#define NUM_THREADS_DIM_Z 4
 
 #endif
 

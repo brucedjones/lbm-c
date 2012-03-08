@@ -35,7 +35,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	#if DIM>2
 		coord[2] = (blockDim.z*blockIdx.z)+threadIdx.z;
 	#endif
-
+		
 	// Load domain configuration
 	double tau = domain_constants->tau;
 	length[0] = domain_constants->length[0];
@@ -110,7 +110,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 				current_node.u[d] += e[d][opp[i]]*current_node.f[opp[i]];
 			}
 		}
-
+		
 		#pragma unroll
 		for (d = 0; d<DIM; d++)
 		{
@@ -119,9 +119,10 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 	
 		// APPLY BOUNDARY CONDITION
 		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
-	
+		//if (boundary_type == 1) zh_pressure_x(&current_node, &boundary_value);	
+		//if (boundary_type == 2) zh_pressure_X(&current_node, &boundary_value);	
 		// COLLISION
-		collision_functions[collision_type](&current_node, opp, e, omega, &tau, &B);
+		//collision_functions[collision_type](&current_node, opp, e, omega, &tau, &B);
 
 		// COALESCED WRITE
 		__syncthreads();

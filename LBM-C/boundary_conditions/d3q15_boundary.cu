@@ -25,7 +25,6 @@ __device__ __noinline__ void zh_pressure_x(Node *current_node, double *rho_bound
 	current_node->f[9] = current_node->f[10] + ((1.0/12.0)*current_node->rho*current_node->u[0]) - ((1.0/4.0)*((current_node->f[3]-current_node->f[4]) - (current_node->f[5]-current_node->f[6])));
 	current_node->f[11] = current_node->f[12] + ((1.0/12.0)*current_node->rho*current_node->u[0]) - ((1.0/4.0)*((-1.0)*(current_node->f[3]-current_node->f[4]) + (current_node->f[5]-current_node->f[6])));
 	current_node->f[13] = current_node->f[14] + ((1.0/12.0)*current_node->rho*current_node->u[0]) - ((1.0/4.0)*((-1.0)*(current_node->f[3]-current_node->f[4]) - (current_node->f[5]-current_node->f[6])));
-
 }
 
 __device__ __noinline__ void zh_pressure_X(Node *current_node, double *rho_boundary)
