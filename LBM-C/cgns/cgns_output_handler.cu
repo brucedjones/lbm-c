@@ -42,7 +42,7 @@ class CGNSOutputHandler
 
 	void create_file()
 	{
-		cg_set_file_type(CG_FILE_ADF2);
+		cg_set_file_type(CGNS_TYPE);
 		cgns_error_check(cg_open(fname,CG_MODE_WRITE,&index_file));
 		cgns_error_check(cg_close(index_file));
 	}
@@ -206,6 +206,7 @@ class CGNSOutputHandler
 
 	void soltime_to_array()
 	{
+		delete soltime_a;
 		soltime_a = (int *)malloc(sizeof(int)*soltime.size());
 		for(int i = 0; i<soltime.size(); i++)
 		{
@@ -218,9 +219,7 @@ class CGNSOutputHandler
 		char *name_tmp;
 		string name_tmp_s;
 
-
-		//solname_a = (char **)malloc(soltime.size() * sizeof (char *));
-		//solname_a = (char *)malloc(soltime.size()*sizeof(char*));
+		delete solname_a;
 		solname_a = (char *)malloc(soltime.size()*sizeof(char*)*(STR_LENGTH+1));
 		for(int i = 0; i<soltime.size();i++)
 		{

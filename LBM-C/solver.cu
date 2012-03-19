@@ -38,6 +38,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		
 	// Load domain configuration
 	double tau = domain_constants->tau;
+	//double tau = 1.0;
 	length[0] = domain_constants->length[0];
 	length[1] = domain_constants->length[1];
 	#if DIM > 2
@@ -91,7 +92,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 			for(d=0; d<DIM; d++)
 			{
 				target_coord[d] = coord[d]+e[d][i];
-				if(target_coord[d]>(length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = length[0]-1;
+				if(target_coord[d]>(length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = length[d]-1;
 			}
 
 			#if DIM > 2
@@ -116,14 +117,11 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		{
 			current_node.u[d] = current_node.u[d]/current_node.rho;
 		}
-	
 		// APPLY BOUNDARY CONDITION
-		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);
-		//if (boundary_type == 1) zh_pressure_x(&current_node, &boundary_value);	
-		//if (boundary_type == 2) zh_pressure_X(&current_node, &boundary_value);	
+		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);	
 		// COLLISION
-		//collision_functions[collision_type](&current_node, opp, e, omega, &tau, &B);
-
+		collision_functions[collision_type](&current_node, opp, e, omega, &tau, &B);
+		
 		// COALESCED WRITE
 		__syncthreads();
 		#pragma unroll

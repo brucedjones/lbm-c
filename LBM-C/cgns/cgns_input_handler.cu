@@ -99,7 +99,6 @@ public:
 		}
 		
 		close_file();
-		cout << "hahaha" << endl;
 		
 	}
 

@@ -60,9 +60,6 @@ class InfileReader {
 		{
 			stringstream(line) >> field_name >> domain_constants->tau;
 			cout << field_name << " = " << domain_constants->tau << endl;
-			//double test;
-			//stringstream(line) >> field_name >> test;
-			//cout << field_name << " = " << test << endl;
 		}
 		else if (line.find("Lx")!=string::npos)
 		{

@@ -183,6 +183,7 @@ void setup(void)
 {
 	// Set cuda device to use
 	cudaSetDevice(0);
+	cudaFuncSetCacheConfig(iterate_kernel, cudaFuncCachePreferL1);
 
 	// Allocate container structures
 	combi_malloc<Lattice>(&lattice_host, &lattice_device, sizeof(Lattice));
@@ -194,7 +195,7 @@ void setup(void)
 	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	ModelBuilder tmpmb("test.lbmc", lattice_host, lattice_device,
+	ModelBuilder tmpmb("cylinder.lbmc", lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,
@@ -252,7 +253,7 @@ void output_macros(int time)
 
 	char *output_file;
 	output_file = (char *)malloc(sizeof(char)*33);
-	strcpy(output_file,"test.cgns");
+	strcpy(output_file,"test3d.cgns");
 
 	char **labels;
 	double **data;
@@ -280,8 +281,11 @@ void output_macros(int time)
 	int i2d, i, j, k;
 	i = 0;
 	j = domain_constants_host->length[1]/2;
-	//k = domain_constants_host->length[2]/2;
-	k = 0;
+	#if DIM > 2
+		k = domain_constants_host->length[2]/2;
+	#else
+		k = 0;
+	#endif
 	i2d = i+j*domain_constants_host->length[0]+k*domain_constants_host->length[0]*domain_constants_host->length[1];
 	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->u[0][i2d]<< "; uY = " << lattice_host->u[1][i2d] << "; resid = " << domain_constants_host->residual << endl;
 }

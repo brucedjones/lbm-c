@@ -185,8 +185,6 @@ class ModelBuilder
 		if(domain_constants_h->zhou_he == 1)
 		{
 			input_handler.read_field(domain_arrays_h->boundary_type, "BCType");
-			cout << "blah blah" << domain_size << endl;
-			//input_handler.read_field(boundary_type_h, "BCType");
 			cudasafe(cudaMemcpy(boundary_type_d, boundary_type_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 
 			input_handler.read_field(domain_arrays_h->boundary_value, "BCValue");
