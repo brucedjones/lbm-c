@@ -171,9 +171,7 @@ class ModelBuilder
 			strcpy(force_labels[2], "ForceZ");
 
 			double *force_d_tmp[DIM];
-			cout << "hahaha" << endl;
 			cudasafe(cudaMemcpy(force_d_tmp, force_d, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
-			cout << "hahaha" << endl;
 			for(int d=0;d<DIM;d++)
 			{
 				input_handler.read_field(domain_arrays_h->force[d], force_labels[d]);
