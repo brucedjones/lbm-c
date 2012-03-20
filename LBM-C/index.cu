@@ -138,17 +138,6 @@ int main(int argc, char **argv)
 
 	for(int i = 0; i<times->max; i++)
 	{
-		if(i%times->plot == 0 || (times->steady_check>0 && i%times->steady_check) || i%times->screen)
-		{
-			store_macros = true;
-		}
-
-		iterate();
-		store_macros = false;
-
-		if (i%times->plot==0) output_macros(i);
-		if (i%times->steady_check==0) steady_check;
-
 		if(i%times->plot == 0 && times->steady_check>0 && i%times->steady_check)
 		{
 			store_macros = true;
@@ -195,7 +184,7 @@ void setup(void)
 	// Set cuda device to use
 	cudaSetDevice(0);
 	cudaFuncSetCacheConfig(iterate_kernel, cudaFuncCachePreferL1);
-
+	
 	// Allocate container structures
 	combi_malloc<Lattice>(&lattice_host, &lattice_device, sizeof(Lattice));
 	combi_malloc<DomainArray>(&domain_arrays_host, &domain_arrays_device, sizeof(DomainArray));
@@ -206,7 +195,7 @@ void setup(void)
 	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	ModelBuilder tmpmb("cylinder.lbmc", lattice_host, lattice_device,
+	ModelBuilder tmpmb("fcylinder.lbmc", lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,
