@@ -138,6 +138,17 @@ int main(int argc, char **argv)
 
 	for(int i = 0; i<times->max; i++)
 	{
+		if(i%times->plot == 0 || (times->steady_check>0 && i%times->steady_check) || i%times->screen)
+		{
+			store_macros = true;
+		}
+
+		iterate();
+		store_macros = false;
+
+		if (i%times->plot==0) output_macros(i);
+		if (i%times->steady_check==0) steady_check;
+
 		if(i%times->plot == 0 && times->steady_check>0 && i%times->steady_check)
 		{
 			store_macros = true;
