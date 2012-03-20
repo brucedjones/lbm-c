@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	cudaMemGetInfo(&freeMemory_before, &totalMemory_before);
 	
 	// Initialise memory for LBM model
-	setup();
+	setup(argv[1]);
 	
 	// Get available memory on graphics card after allocation
 	size_t freeMemory_after;
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 
 
 // EXECUTES ALL ROUTINES REQUIRED FOR THE MODEL SET UP
-void setup(void)
+void setup(char *data_file)
 {
 	// Set cuda device to use
 	cudaSetDevice(0);
@@ -195,7 +195,7 @@ void setup(void)
 	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	ModelBuilder tmpmb("cylinder.lbmc", lattice_host, lattice_device,
+	ModelBuilder tmpmb(data_file, lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,

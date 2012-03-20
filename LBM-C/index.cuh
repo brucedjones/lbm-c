@@ -1,7 +1,7 @@
 #ifndef INDEX_H
 #define INDEX_H
 
-void setup(void);
+void setup(char *data_file);
 void cudasafe( cudaError_t error, char* message);
 void Check_CUDA_Error(const char *message);
 void output_macros(int time);
