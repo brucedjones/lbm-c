@@ -17,7 +17,7 @@ DeltaT		1	#(1 for LBM units)
 
 #===SOLUTION CONFIGURATION===#
 ColType		BGK	#(BGK/NT/BGKPOR/NTPOR)
-Force		0	#(0 = No, 1 = Yes)
+Force		1	#(0 = No, 1 = Yes)
 ZhouHe		1	#(0 = No, 1 = Pressure, 2 = Velocity, 4 = Both)
 Init		0	#(0 = Static Equilibrium, 1 = Equilibrium velocity/pressure Field, 2 = Restart)
 

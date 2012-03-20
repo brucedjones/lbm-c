@@ -15,8 +15,8 @@
 __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, DomainConstant *domain_constants, bool store_macros)
 {
 	// Declare Variables
-	double omega[Q], B;
-	int ixd, target_ixd, e[DIM][Q], opp[Q], length[DIM], coord[DIM], domain_size;
+	double omega[Q], B, boundary_value;
+	int ixd, target_ixd, e[DIM][Q], opp[Q], length[DIM], coord[DIM], domain_size, boundary_type;
 	int i, d;
 	Node current_node;
 
@@ -76,8 +76,13 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		int collision_type = (domain_constants->collision_type*2)+collision_modifier;
 
 		// Load boundary condition
-		int boundary_type = domain_arrays->boundary_type[ixd];
-		double boundary_value = domain_arrays->boundary_value[ixd];
+		if(domain_constants->zhou_he==true)
+		{
+			boundary_type = domain_arrays->boundary_type[ixd];
+			boundary_value = domain_arrays->boundary_value[ixd];
+		}	else {
+			boundary_type = 0;
+		}
 	
 		// Load Geometry
 		B = domain_arrays->geometry[ixd];

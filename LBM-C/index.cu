@@ -195,7 +195,7 @@ void setup(void)
 	project = (ProjectStrings *)malloc(sizeof(ProjectStrings));
 	lattice_device_prototype = (Lattice *)malloc(sizeof(Lattice));
 
-	ModelBuilder tmpmb("fcylinder.lbmc", lattice_host, lattice_device,
+	ModelBuilder tmpmb("cylinder.lbmc", lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
 		domain_arrays_host, domain_arrays_device,
 		output_controller_host, output_controller_device,
@@ -312,14 +312,12 @@ void iterate(void)
 
 	dim3 grid_dim = dim3(threads.x,threads.y,threads.z);
     dim3 block_dim = dim3(blocks.x,blocks.y,blocks.z);
-
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// ITERATE ONCE
 	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, domain_constants_device, store_macros);
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
-
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
 	swap_lattices();
 }
