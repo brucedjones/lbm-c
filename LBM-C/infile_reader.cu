@@ -118,6 +118,11 @@ class InfileReader {
 			stringstream(line) >> field_name >> domain_constants->zhou_he;
 			cout << field_name << " = " << domain_constants->zhou_he << endl;
 		}
+		else if (line.find("Tolerance")!=string::npos)
+		{
+			stringstream(line) >> field_name >> domain_constants->tolerance;
+			cout << field_name << " = " << domain_constants->tolerance << endl;
+		}
 		else if (line.find("Init")!=string::npos)
 		{
 			stringstream(line) >> field_name >> domain_constants->init_type;
@@ -157,6 +162,11 @@ class InfileReader {
 			#endif
 			if(output_controller->rho==true) cout << "Output Density" << " = " << output_controller->rho << endl;
 			if(output_controller->pressure==true) cout << "Output Pressure" << " = " << output_controller->pressure << endl;
+		}
+		else if (line.find("Interactive")!=string::npos)
+		{
+			stringstream(line) >> field_name >> output_controller->interactive;
+			cout << field_name << " = " << output_controller->interactive << endl;
 		} else {
 			cout << line_tot <<endl;
 		}

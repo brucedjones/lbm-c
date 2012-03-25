@@ -122,10 +122,9 @@ int main(int argc, char **argv)
 	#endif
 	printf("Relaxation Time (Tau):	%f\n", domain_constants_host->tau);
 	printf("\nPress return to continue...");
-	getchar();
+	if (output_controller_host->interactive == true) getchar();
 
 	domain_constants_host->residual = 0;
-	output_macros(-1);
 
 	// Get current clock cycle number
 	clock_t t1=clock();
@@ -136,33 +135,39 @@ int main(int argc, char **argv)
 		domain_size = domain_size*domain_constants_host->length[d];
 	}
 
-	for(int i = 0; i<times->max; i++)
+	int coord[DIM];
+	coord[0] = 0;
+	coord[1] = floor((float)domain_constants_host->length[1]/2.);
+
+	for(int i = 1; i<times->max+1; i++)
 	{
-		if(i%times->plot == 0 && times->steady_check>0 && i%times->steady_check)
+		if((times->plot>0 && i%times->plot == 0) ||
+		   (times->steady_check>0 && i%times->steady_check) || 
+		   (times->screen>0 && i%times->screen)) store_macros = true;
+
+		iterate();
+
+		if(times->plot>0 && i%times->plot == 0)
 		{
-			store_macros = true;
-			iterate();
-			output_macros(i);
-			domain_constants_host->residual = error_RMS(lattice_device->u[0],domain_size);
-			if(domain_constants_host->residual<domain_constants_host->tolerance) break;
-			store_macros = false;
-		} else if (i%times->plot==0)
-		{
-			store_macros = true;
-			iterate();
 			output_macros(i);
 			store_macros = false;
-		} else if(times->steady_check>0 && i%times->steady_check)
+		}
+
+		if(times->screen>0 && i%times->screen == 0)
 		{
-			store_macros = true;
-			iterate();
-			cudasafe(cudaMemcpy(lattice_host->u[0], lattice_device->u[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
-			domain_constants_host->residual = error_RMS(lattice_device->u[0],domain_size);
-			if(domain_constants_host->residual<domain_constants_host->tolerance) break;
+			screen_mess(i,coord);
 			store_macros = false;
-		} else
+		}
+
+		if(times->steady_check>0 && i%times->steady_check == 0)
 		{
-			iterate();
+			compute_residual();
+			if(domain_constants_host->residual<domain_constants_host->tolerance)
+			{
+				output_macros(i);
+				break;
+			}
+			store_macros = false;
 		}
 	}
 
@@ -172,7 +177,7 @@ int main(int argc, char **argv)
 	double cputime = ((double)t2-(double)t1)/(double)CLOCKS_PER_SEC;
 	printf("\n\nTotal Run Time: %fs",cputime);
 	printf("\nPress return to finish");
-	getchar();
+	if (output_controller_host->interactive == true) getchar();
 
 
 }
@@ -211,7 +216,7 @@ void setup(char *data_file)
 	#if DIM > 2
 		z_len = domain_constants_host->length[2];
 	#endif
-	CGNSOutputHandler tmp("LBM-C Results.cgns",domain_constants_host->length[0],domain_constants_host->length[1],z_len);
+	CGNSOutputHandler tmp(project->output_fname,domain_constants_host->length[0],domain_constants_host->length[1],z_len);
 	output_handler = tmp;
 }
 
@@ -277,17 +282,6 @@ void output_macros(int time)
 	strcpy(labels[2],"VelocityY");
 
 	output_handler.append_solution_output(time,fields,data,labels);
-
-	int i2d, i, j, k;
-	i = 0;
-	j = domain_constants_host->length[1]/2;
-	#if DIM > 2
-		k = domain_constants_host->length[2]/2;
-	#else
-		k = 0;
-	#endif
-	i2d = i+j*domain_constants_host->length[0]+k*domain_constants_host->length[0]*domain_constants_host->length[1];
-	cout << endl << "time = " << time << "; rho = " << lattice_host->rho[i2d] << "; uX = " << lattice_host->u[0][i2d]<< "; uY = " << lattice_host->u[1][i2d] << "; resid = " << domain_constants_host->residual << endl;
 }
 
 // CONFIGURES THE KERNEL CONFIGURATION AND LAUNCHES KERNEL
@@ -370,6 +364,50 @@ double error_RMS(double *device_var, int var_size)
 	prev_RMS = curr_RMS;
 
 	return tmp;
+}
+
+void compute_residual(void)
+{
+	int domain_size = domain_constants_host->length[0]*domain_constants_host->length[1];
+	#if DIM > 2
+		domain_size = domain_size*domain_constants_host->length[2];
+	#endif
+
+	Lattice lattice_tmp;
+
+	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
+	double *u_tmp[DIM];
+	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
+	cudasafe(cudaMemcpy(lattice_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+
+	domain_constants_host->residual = error_RMS(u_tmp[0],domain_size);
+}
+
+void screen_mess(int iter, int coord[DIM])
+{
+	int idx = coord[0]+coord[1]*domain_constants_host->length[0];
+	#if DIM > 2
+		idx += coord[2]*domain_constants_host->length[0]*domain_constants_host->length[1];
+	#endif
+
+	double u[DIM],rho;
+	Lattice lattice_tmp;
+
+	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	
+	double *u_tmp[DIM];
+	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
+	for(int d=0;d<DIM;d++)
+	{
+		cudasafe(cudaMemcpy(&u[d], &u_tmp[d][idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	}
+
+	cudasafe(cudaMemcpy(&rho, &lattice_tmp.rho[idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+
+	cout << "time = " << iter << "; rho = " << rho << "; uX = " << u[0]<< "; uY = " << u[1] << "; resid = " << domain_constants_host->residual << endl;
 }
 
 #endif

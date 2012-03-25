@@ -57,6 +57,7 @@ typedef struct
 	bool u[DIM];
 	bool rho;
 	bool pressure;
+	bool interactive;
 } OutputController;
 
 typedef struct
