@@ -62,9 +62,9 @@ typedef struct
 
 typedef struct
 {
-	char name[32];
-	char domain_fname[32];
-	char output_fname[32];
+	char name[STR_LENGTH];
+	char domain_fname[STR_LENGTH];
+	char output_fname[STR_LENGTH];
 } ProjectStrings;
 
 // Solver function pointers for boundary conditions and collisions

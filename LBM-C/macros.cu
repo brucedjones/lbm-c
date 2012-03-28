@@ -4,6 +4,8 @@
 //#define CGNS_TYPE CG_FILE_HDF5
 #define CGNS_TYPE CG_FILE_ADF
 
+#define STR_LENGTH 64
+
 //#define D3Q15
 #define D2Q9
 

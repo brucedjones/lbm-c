@@ -13,8 +13,6 @@
 #include "cuda_util.cu"
 using namespace std;
 
-#define STR_LENGTH 31
-
 class ModelBuilder
 {
 	int length[DIM];
