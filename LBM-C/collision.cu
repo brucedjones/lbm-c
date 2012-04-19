@@ -178,4 +178,22 @@ __device__ void bounceback(Node *current_node, int *opp, int e[DIM][Q], double *
 	current_node->rho = 0;
 }
 
+__device__ void turbulent_viscosity(Node *current_node, double *f_eq, int e[DIM][Q], double *omega, double *tau, double *c_smag)
+{
+	double Q_bar[DIM][DIM], Q_hat;
+
+	for(int i = 0; i<DIM; i++)
+	{
+		for(int j = 0; j<DIM; j++)
+		{
+			for(int q = 0; q<Q; q++)
+			{
+				Q_bar[i][j] = Q_bar[i][j]+(e[i][q]*e[j][q]*(current_node->f[q]-f_eq[q]));
+			}
+			Q_hat = Q_hat+ sqrt(2*Q_bar[i][j]*Q_bar[i][j]);
+		}
+	}
+	*tau = *tau+0.5*(sqrt((*tau**tau)+(2*sqrt(2)*(*c_smag**c_smag)*((current_node->rho*((1/sqrt(3))^4))^-1)*Q_hat))-*tau);
+}
+
 #endif
