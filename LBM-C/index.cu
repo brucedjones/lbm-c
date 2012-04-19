@@ -383,6 +383,8 @@ void compute_residual(void)
 	cudasafe(cudaMemcpy(lattice_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 
 	domain_constants_host->residual = error_RMS(u_tmp[0],domain_size);
+
+	if(isIndeterminate(domain_constants_host->residual)) exit(1);
 }
 
 void screen_mess(int iter, int coord[DIM])
@@ -409,5 +411,10 @@ void screen_mess(int iter, int coord[DIM])
 
 	cout << "time = " << iter << "; rho = " << rho << "; uX = " << u[0]<< "; uY = " << u[1] << "; resid = " << domain_constants_host->residual << endl;
 }
+
+bool isIndeterminate(const double pV)
+{
+    return (pV != pV);
+} 
 
 #endif

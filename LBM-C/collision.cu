@@ -151,7 +151,7 @@ __device__ void guo_ntpor_collision(Node *current_node, int *opp, int e[DIM][Q],
 		collision_bgk = (1.0/(*tau)) * (current_node->f[i]-f_eq);
 		collision_s = current_node->f[opp[i]]-current_node->f[i];
 
-		tmp[i] = current_node->f[i] - (1-(*B))*(collision_bgk) + (*B)*collision_s + force_term;
+		tmp[i] = current_node->f[i] - (1-(*B))*(collision_bgk) + (*B)*collision_s + (1-(*B))*force_term;
 	}
 
 	for(int i =0;i<Q;i++)

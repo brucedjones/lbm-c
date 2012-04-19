@@ -12,5 +12,6 @@ double current_RMS(double *device_var, int var_size);
 double error_RMS(double *device_var, int var_size);
 void compute_residual(void);
 void screen_mess(int iter, int coord[DIM]);
+bool isIndeterminate(const double pV);
 
 #endif
