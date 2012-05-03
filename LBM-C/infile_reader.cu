@@ -17,6 +17,11 @@ class InfileReader {
 	OutputController *output_controller;
 	ProjectStrings *project;
 
+	void initialise()
+	{
+		domain_constants->c_smag = 0;
+	}
+
 	void open_file() {
 		data_file.open(fname);
 	}
@@ -90,6 +95,11 @@ class InfileReader {
 		{
 			stringstream(line) >> field_name >> domain_constants->dt;
 			cout << field_name << " = " << domain_constants->dt << endl;
+		}
+		else if (line.find("C_smag")!=string::npos)
+		{
+			stringstream(line) >> field_name >> domain_constants->c_smag;
+			cout << field_name << " = " << domain_constants->c_smag << endl;
 		}
 		else if (line.find("ColType")!=string::npos)
 		{
@@ -186,6 +196,7 @@ InfileReader::InfileReader(char *input_filename, ProjectStrings *project_in, Dom
 
 			cout << endl << "Reading configuration data: " << endl << endl;
 
+			initialise();
 			open_file();
 			parse_file();
 			close_file();

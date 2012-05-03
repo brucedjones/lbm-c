@@ -33,7 +33,7 @@ typedef struct
 	int init_type;
 	double residual;
 	double tolerance;
-	double c_smag
+	double c_smag;
 } DomainConstant;
 
 typedef struct
@@ -43,6 +43,7 @@ typedef struct
 	double u[DIM];
 	double F[DIM];
 	double B;
+	double c_smag;
 } Node;
 
 typedef struct

@@ -49,8 +49,9 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, Do
 		ixd = (coord[0] + coord[1]*length[0]);
 		domain_size = length[0]*length[1];
 	#endif
+	current_node.c_smag = domain_constants->c_smag;
 	
-	
+	// Out-of-bounds check
 	#if DIM > 2
 		if(coord[0]<length[0] && coord[1]<length[1] && coord[2]<length[2])
 	#else
