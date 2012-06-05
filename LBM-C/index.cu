@@ -94,25 +94,24 @@ CGNSOutputHandler output_handler;
 
 int main(int argc, char **argv)
 {
-	//tolerance = 0.00000001;
 
 	// Get available memory on graphics card before allocation
-	size_t freeMemory_before;
-	size_t totalMemory_before;
+	size_t freeMemory_before = 0;
+	size_t totalMemory_before = 0;
 	cudaMemGetInfo(&freeMemory_before, &totalMemory_before);
 	
 	// Initialise memory for LBM model
 	setup(argv[1]);
 	
 	// Get available memory on graphics card after allocation
-	size_t freeMemory_after;
-	size_t totalMemory_after;
+	size_t freeMemory_after = 0;
+	size_t totalMemory_after = 0;
 	cudaMemGetInfo(&freeMemory_after, &totalMemory_after);
 
 	// Report program memory usage
-	printf("Total Device Memory:	%luMb\n", (unsigned long) totalMemory_after / 1024 / 1024);
-	printf("Total Availabe Memory:	%luMb\n", (unsigned long) freeMemory_before / 1024 / 1024);
-	printf("Memory Used:		%luMb\n\n", (unsigned long) (freeMemory_before-freeMemory_after) / 1024 / 1024);
+	cout << "Total Device Memory:	 "<< totalMemory_after / 1024 / 1024 << "Mb" << endl;
+	cout << "Total Availabe Memory:	 "<< freeMemory_before / 1024 / 1024 << "Mb" << endl;
+	cout << "Memory Used:            "<< (freeMemory_before-freeMemory_after) / 1024 / 1024 << "Mb" << endl;
 
 	// Report domain configuration
 	printf("X-Length:		%d\n", domain_constants_host->length[0]);
@@ -255,33 +254,62 @@ void output_macros(int time)
 	//cudasafe(cudaMemcpy(lattice_host->u[0], lattice_device->u[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - ux");
 	//cudasafe(cudaMemcpy(lattice_host->u[1], lattice_device->u[1], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - uy");
 
-
-	char *output_file;
-	output_file = (char *)malloc(sizeof(char)*33);
-	strcpy(output_file,"test3d.cgns");
+	int num_fields = 0;
+	if (output_controller_host->u[0] == true) num_fields++;
+	if (output_controller_host->u[1] == true) num_fields++;
+	if (output_controller_host->u[2] == true) num_fields++;
+	if (output_controller_host->rho == true) num_fields++;
 
 	char **labels;
 	double **data;
 
-	int fields = 3;
+	labels = (char **)malloc(num_fields * sizeof (char *));
+	data = (double **)malloc(num_fields * sizeof(double));
 
-	labels = (char **)malloc(fields * sizeof (char *));
-	data = (double **)malloc(fields * sizeof(double));
-
-	for(int i = 0; i<fields;i++)
+	for(int i = 0; i<num_fields;i++)
 	{
 		labels[i] = (char *)malloc(STR_LENGTH*sizeof(char));
 	}
 
-	data[0] = lattice_host->rho;
+	int counter = 0;
+
+	if (output_controller_host->u[0] == true)
+	{
+		data[counter] = lattice_host->u[0];
+		strcpy(labels[counter],"VelocityX");
+		counter++;
+	}
+
+	if (output_controller_host->u[1] == true)
+	{
+		data[counter] = lattice_host->u[1];
+		strcpy(labels[counter],"VelocityY");
+		counter++;
+	}
+
+	if (output_controller_host->u[2] == true)
+	{
+		data[counter] = lattice_host->u[2];
+		strcpy(labels[counter],"VelocityZ");
+		counter++;
+	}
+	
+	if (output_controller_host->rho == true)
+	{
+		data[counter] = lattice_host->rho;
+		strcpy(labels[counter],"Density");
+		counter++;
+	}
+
+/*	data[0] = lattice_host->rho;
 	data[1] = lattice_host->u[0];
 	data[2] = lattice_host->u[1];
 
 	strcpy(labels[0],"Density");
 	strcpy(labels[1],"VelocityX");
-	strcpy(labels[2],"VelocityY");
+	strcpy(labels[2],"VelocityY");*/
 
-	output_handler.append_solution_output(time,fields,data,labels);
+	output_handler.append_solution_output(time,num_fields,data,labels);
 }
 
 // CONFIGURES THE KERNEL CONFIGURATION AND LAUNCHES KERNEL

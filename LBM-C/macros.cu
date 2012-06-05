@@ -1,8 +1,8 @@
 #ifndef MACROS
 #define MACROS
 
-//#define CGNS_TYPE CG_FILE_HDF5
-#define CGNS_TYPE CG_FILE_ADF
+#define CGNS_TYPE CG_FILE_HDF5
+//#define CGNS_TYPE CG_FILE_ADF
 
 #define STR_LENGTH 64
 
