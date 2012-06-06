@@ -257,7 +257,9 @@ void output_macros(int time)
 	int num_fields = 0;
 	if (output_controller_host->u[0] == true) num_fields++;
 	if (output_controller_host->u[1] == true) num_fields++;
+#if DIM > 2
 	if (output_controller_host->u[2] == true) num_fields++;
+#endif
 	if (output_controller_host->rho == true) num_fields++;
 
 	char **labels;
@@ -286,14 +288,14 @@ void output_macros(int time)
 		strcpy(labels[counter],"VelocityY");
 		counter++;
 	}
-
+#if DIM > 2
 	if (output_controller_host->u[2] == true)
 	{
 		data[counter] = lattice_host->u[2];
 		strcpy(labels[counter],"VelocityZ");
 		counter++;
 	}
-	
+#endif	
 	if (output_controller_host->rho == true)
 	{
 		data[counter] = lattice_host->rho;
@@ -337,7 +339,7 @@ void iterate(void)
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// ITERATE ONCE
-	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, domain_constants_device, store_macros);
+	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, store_macros);
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER

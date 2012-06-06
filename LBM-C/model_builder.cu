@@ -60,9 +60,17 @@ class ModelBuilder
 
 	void constant_loader()
 	{
+		// LOAD CONSTANTS FROM FILE
 		InfileReader infile_reader(fname_config, project_t, domain_constants_h, time_t, output_controller_h);
+		
+		// LOAD LATTICE CONSTANTS
+		LOAD_E(domain_constants_h->e);
+		LOAD_OMEGA(domain_constants_h->omega);
+		LOAD_OPP(domain_constants_h->opp);
+
 		//transfer domain_constants to device (cant think of a better place to put this)
-		cudasafe(cudaMemcpy(domain_constants_d, domain_constants_h, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		//cudasafe(cudaMemcpy(domain_constants_d, domain_constants_h, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		cudasafe(cudaMemcpyToSymbol("domain_constants", domain_constants_h, sizeof(DomainConstant)),"Model Builder: Copy to device memory failed!");
 		cudasafe(cudaMemcpy(output_controller_d, output_controller_h, sizeof(OutputController),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 	}
 
