@@ -44,6 +44,7 @@ typedef struct
 	double F[DIM];
 	double B;
 	double c_smag;
+	int coord[DIM];
 } Node;
 
 typedef struct
