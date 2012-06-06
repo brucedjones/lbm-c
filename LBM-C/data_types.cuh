@@ -23,6 +23,9 @@ typedef struct
 
 typedef struct
 {
+	int opp[Q];
+	int e[DIM][Q];
+	double omega[Q];
 	double tau;
 	int h;
 	int dt;
@@ -72,6 +75,6 @@ typedef struct
 
 // Solver function pointers for boundary conditions and collisions
 typedef void (*boundary_condition) (Node *, double *);
-typedef void (*collision) (Node *, int *, int [DIM][Q], double *, double *, double *);
+typedef void (*collision) (Node *, double *, double *);
 
 #endif
