@@ -94,7 +94,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 			#pragma unroll
 			for (d = 0; d<DIM; d++)
 			{
-				current_node.u[d] += e[d][i]*current_node.f[i];
+				current_node.u[d] += domain_constants.e[d][i]*current_node.f[i];
 			}
 		}
 		
@@ -116,8 +116,8 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 			#pragma unroll
 			for(d=0; d<DIM; d++)
 			{
-				target_coord[d] = current_node.coord[d]+e[d][i];
-				if(target_coord[d]>(length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = domain_constants.length[d]-1;
+				target_coord[d] = current_node.coord[d]+domain_constants.e[d][i];
+				if(target_coord[d]>(domain_constants.length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = domain_constants.length[d]-1;
 			}
 
 			#if DIM > 2
