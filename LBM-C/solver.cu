@@ -3,6 +3,7 @@
 
 #include "solver.cuh"
 #include "collision.cu"
+#include "boundary_conditions/macro_bc.cu"
 
 #ifdef D2Q9
 	#include "boundary_conditions/d2q9_boundary.cu"
@@ -12,11 +13,10 @@
 	#include "boundary_conditions/d3q15_boundary.cu"
 #endif
 
-__global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bool store_macros)
+__global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_macros)
 {
 	// Declare Variables
-	double B, boundary_value;
-	int ixd, target_ixd, domain_size, boundary_type;
+	int ixd, target_ixd, domain_size;
 	int i, d;
 	Node current_node;
 
@@ -31,19 +31,37 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 	current_node.coord[1] = (blockDim.y*blockIdx.y)+threadIdx.y;
 	#if DIM>2
 		current_node.coord[2] = (blockDim.z*blockIdx.z)+threadIdx.z;
-	#endif
-		
-	// Load domain configuration
-	double tau = domain_constants.tau;
-
-	#if DIM > 2
 		ixd = (current_node.coord[0] + current_node.coord[1]*domain_constants.length[0] + current_node.coord[2]*domain_constants.length[0]*domain_constants.length[1]);
 		domain_size = domain_constants.length[0]*domain_constants.length[1]*domain_constants.length[2];
 	#else
 		ixd = (current_node.coord[0] + current_node.coord[1]*domain_constants.length[0]);
 		domain_size = domain_constants.length[0]*domain_constants.length[1];
 	#endif
+		current_node.ixd = ixd;
+		
+	// Load domain configuration
+	// Relaxation time:
+	double tau = domain_constants.tau;
+	// Smagorinsky constant:
 	current_node.c_smag = domain_constants.c_smag;
+	// Boundary condition:
+	int macro_bc = domain->macro_bc[ixd];
+	int micro_bc = domain->micro_bc[ixd];
+	// Collision type:
+	int collision_type = (domain_constants.collision_type*2);	// Set collision type and optional forces
+	if(domain_constants.forcing==true)							// The type specified in domain_constants must be multiplied by two to match the listing
+	{															// order in the collision_functions array, an additional 1 is added to the collision type
+		#pragma unroll											// to specify a collision with guo body forces
+		for (d=0;d<DIM;d++)
+		{
+			current_node.F[d] = domain->force[d][ixd];
+			if(current_node.F[d]>0) collision_type += 1;
+		}
+	}
+
+	// Geometry:
+	current_node.B = domain->geometry[ixd];
+	if(current_node.B==1) collision_type = 4;
 	
 	// Out-of-bounds check
 	#if DIM > 2
@@ -52,37 +70,7 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 		if(current_node.coord[0]<domain_constants.length[0] && current_node.coord[1]<domain_constants.length[1])
 	#endif
 	{
-		// Set collision type and optional forces
-		// The type specified in domain_constants must be multiplied by two to match the listing
-		// order in the collision_functions array, an additional 1 is added to the collision type
-		// to specify a collision with guo body forces
-		int collision_modifier = 0;
-		if(domain_constants.forcing==true)
-		{
-			#pragma unroll
-			for (d=0;d<DIM;d++)
-			{
-				current_node.F[d] = domain_arrays->force[d][ixd];
-				if(current_node.F[d]>0) collision_modifier = 1;
-			}
-		}
-
-		int collision_type = (domain_constants.collision_type*2)+collision_modifier;
-
-		// Load boundary condition
-		if(domain_constants.zhou_he==true)
-		{
-			boundary_type = domain_arrays->boundary_type[ixd];
-			boundary_value = domain_arrays->boundary_value[ixd];
-		}	else {
-			boundary_type = 0;
-		}
-	
-		// Load Geometry
-		B = domain_arrays->geometry[ixd];
-		if(B==1) collision_type = 4;
-	
-		// STREAMING - COALESCED READ
+		// COALESCED READ
 		int target_coord[DIM];
 		#pragma unroll
 		for(i = 0; i<Q; i++)
@@ -103,12 +91,15 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 		{
 			current_node.u[d] = current_node.u[d]/current_node.rho;
 		}
-		// APPLY BOUNDARY CONDITION
-		if (boundary_type>0) boundary_conditions[boundary_type-1](&current_node, &boundary_value);	
+
+		// Load boundary condition
+		if(macro_bc>0) macro_conditions[macro_bc-1](&current_node, domain);	
+		if(micro_bc>0) micro_conditions[micro_bc-1](&current_node);
+
 		// COLLISION
-		collision_functions[collision_type](&current_node, &tau, &B);
+		collision_functions[collision_type](&current_node, &tau);
 		
-		// COALESCED WRITE
+		// COALESCED STREAMING WRITE
 		__syncthreads();
 		#pragma unroll
 		for(int i=0;i<Q;i++)
@@ -135,9 +126,9 @@ __global__ void iterate_kernel (Lattice *lattice, DomainArray *domain_arrays, bo
 			#pragma unroll
 			for (d = 0; d<DIM; d++)
 			{
-				lattice->u[d][ixd] = current_node.u[d];
+				domain->u[d][ixd] = current_node.u[d];
 			}
-			lattice->rho[ixd] = current_node.rho;
+			domain->rho[ixd] = current_node.rho;
 		} 
 	}
 }

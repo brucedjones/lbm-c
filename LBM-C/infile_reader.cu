@@ -123,10 +123,15 @@ class InfileReader {
 			stringstream(line) >> field_name >> domain_constants->forcing;
 			cout << field_name << " = " << domain_constants->forcing << endl;
 		}
-		else if (line.find("ZhouHe")!=string::npos)
+		else if (line.find("MicroBC")!=string::npos)
 		{
-			stringstream(line) >> field_name >> domain_constants->zhou_he;
-			cout << field_name << " = " << domain_constants->zhou_he << endl;
+			stringstream(line) >> field_name >> domain_constants->micro_bc;
+			cout << field_name << " = " << domain_constants->micro_bc << endl;
+		}
+		else if (line.find("MacroBC")!=string::npos)
+		{
+			stringstream(line) >> field_name >> domain_constants->macro_bc;
+			cout << field_name << " = " << domain_constants->macro_bc << endl;
 		}
 		else if (line.find("Tolerance")!=string::npos)
 		{

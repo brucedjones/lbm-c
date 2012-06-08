@@ -9,17 +9,17 @@ typedef struct
 // Population distributions
 	double **f_prev;
 	double **f_curr;
-	double **u;
-	double *rho;
 } Lattice;
 
 typedef struct
 {
-	int *boundary_type;
-	double *boundary_value;
+	int *macro_bc;
+	int *micro_bc;
 	double *geometry;
 	double **force;
-} DomainArray;
+	double **u;
+	double *rho;
+} Domain;
 
 typedef struct
 {
@@ -31,7 +31,8 @@ typedef struct
 	int dt;
 	int length[DIM];
 	bool forcing;
-	int zhou_he;
+	bool macro_bc;
+	bool micro_bc;
 	int collision_type;
 	int init_type;
 	double residual;
@@ -41,6 +42,7 @@ typedef struct
 
 typedef struct
 {
+	int ixd;
 	double f[Q];
 	double rho;
 	double u[DIM];
@@ -74,7 +76,8 @@ typedef struct
 } ProjectStrings;
 
 // Solver function pointers for boundary conditions and collisions
-typedef void (*boundary_condition) (Node *, double *);
-typedef void (*collision) (Node *, double *, double *);
+typedef void (*micro_condition) (Node *);
+typedef void (*macro_condition) (Node *, Domain *);
+typedef void (*collision) (Node *, double *);
 
 #endif

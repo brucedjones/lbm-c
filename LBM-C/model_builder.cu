@@ -19,20 +19,22 @@ class ModelBuilder
 	// DEVICE VARIABLE DECLARATION
 	OutputController *output_controller_d;
 	Lattice *lattice_d;
-	DomainArray *domain_arrays_d;
+	Domain *domain_d;
 	DomainConstant *domain_constants_d;
 	double **f_1_d, **f_2_d, *rho_d, **u_d, *boundary_value_d, *geometry_d, **force_d; 
-	int *boundary_type_d;
+	int *micro_bc_d;
+	int *macro_bc_d;
 
 	// HOST VARIABLE DECLARATION
 	Timing *time_t;
 	ProjectStrings *project_t;
 	OutputController *output_controller_h;
 	Lattice *lattice_h, *lattice_d_prototype;
-	DomainArray *domain_arrays_h;
+	Domain *domain_h;
 	DomainConstant *domain_constants_h;
 	double **f_h, *rho_h, **u_h, *boundary_value_h, *geometry_h, **force_h;
-	int *boundary_type_h;
+	int *micro_bc_h;
+	int *macro_bc_h;
 
 	// SCALAR DECLARATION (PLATFORM AGNOSTIC)
 	double tau, residual;
@@ -50,7 +52,7 @@ class ModelBuilder
 	{
 		// Allocate container structures
 		//combi_malloc<Lattice>(&lattice_h, &lattice_d, sizeof(Lattice));
-		//combi_malloc<DomainArray>(&domain_arrays_h, &domain_arrays_d, sizeof(DomainArray));
+		//combi_malloc<Domain>(&domain_h, &domain_d, sizeof(Domain));
 		//combi_malloc<DomainConstant>(&domain_constants_h, &domain_constants_d, sizeof(DomainConstant));
 		//combi_malloc<OutputController>(&output_controller_h, &output_controller_d, sizeof(OutputController));
 		//domain_constants_h = (DomainConstant *)malloc(sizeof(DomainConstant));
@@ -126,11 +128,16 @@ class ModelBuilder
 			cudasafe(cudaMemcpy(force_d,force_tmp,sizeof(double*)*DIM, cudaMemcpyHostToDevice), "Model Builder: Device memory allocation failed!");
 		}
 
-		// ZHOU/HE
-		if(domain_constants_h->zhou_he == 1)
+		// MICRO BC
+		if(domain_constants_h->micro_bc == true)
 		{
-			combi_malloc<int>(&boundary_type_h, &boundary_type_d, domain_data_size);
-			combi_malloc<double>(&boundary_value_h, &boundary_value_d, domain_data_size);
+			combi_malloc<int>(&micro_bc_h, &micro_bc_d, domain_data_size);
+		}
+
+		// MACRO BC
+		if(domain_constants_h->macro_bc == true)
+		{
+			combi_malloc<int>(&macro_bc_h, &macro_bc_d, domain_data_size);
 		}
 	}
 
@@ -138,34 +145,35 @@ class ModelBuilder
 	{
 		lattice_h->f_prev = f_h;
 		lattice_h->f_curr = f_h;
-		lattice_h->u = u_h;
-		lattice_h->rho = rho_h;
+
 
 		Lattice *lattice_d_tmp = (Lattice *)malloc(sizeof(Lattice));
 		lattice_d_tmp->f_prev = f_1_d;
 		lattice_d_tmp->f_curr = f_2_d;
-		lattice_d_tmp->u = u_d;
-		lattice_d_tmp->rho = rho_d;
 		cudasafe(cudaMemcpy(lattice_d, lattice_d_tmp, sizeof(Lattice),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 
-		domain_arrays_h->boundary_type = boundary_type_h;
-		domain_arrays_h->boundary_value = boundary_value_h;
-		domain_arrays_h->geometry = geometry_h;
-		domain_arrays_h->force = force_h;
+		domain_h->micro_bc = micro_bc_h;
+		domain_h->macro_bc = macro_bc_h;
+		domain_h->geometry = geometry_h;
+		domain_h->force = force_h;
+		domain_h->u = u_h;
+		domain_h->rho = rho_h;
 
-		DomainArray *domain_arrays_d_tmp = (DomainArray *)malloc(sizeof(DomainArray));
-		domain_arrays_d_tmp->boundary_type = boundary_type_d;
-		domain_arrays_d_tmp->boundary_value = boundary_value_d;
-		domain_arrays_d_tmp->geometry = geometry_d;
-		domain_arrays_d_tmp->force = force_d;
-		cudasafe(cudaMemcpy(domain_arrays_d, domain_arrays_d_tmp, sizeof(DomainArray),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		Domain *domain_d_tmp = (Domain *)malloc(sizeof(Domain));
+		domain_d_tmp->micro_bc = micro_bc_d;
+		domain_d_tmp->macro_bc = macro_bc_d;
+		domain_d_tmp->geometry = geometry_d;
+		domain_d_tmp->force = force_d;
+		domain_d_tmp->u = u_d;
+		domain_d_tmp->rho = rho_d;
+		cudasafe(cudaMemcpy(domain_d, domain_d_tmp, sizeof(Domain),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 	}
 
 	void variable_loader()
 	{
 		// LOAD GEOMETRY
 		CGNSInputHandler input_handler(project_t->domain_fname, domain_constants_h->length);
-		input_handler.read_field(domain_arrays_h->geometry, "Porosity");
+		input_handler.read_field(domain_h->geometry, "Porosity");
 		cudasafe(cudaMemcpy(geometry_d, geometry_h, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 		
 		// LOAD FORCES IF REQUIRED
@@ -180,19 +188,39 @@ class ModelBuilder
 			cudasafe(cudaMemcpy(force_d_tmp, force_d, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 			for(int d=0;d<DIM;d++)
 			{
-				input_handler.read_field(domain_arrays_h->force[d], force_labels[d]);
+				input_handler.read_field(domain_h->force[d], force_labels[d]);
 				cudasafe(cudaMemcpy(force_d_tmp[d], force_h[d], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 			}
 		}
 
-		// LOAD ZHOU/HE VARIABLES IF REQUIRED
-		if(domain_constants_h->zhou_he == 1)
+		// LOAD MICRO BOUNDARY CONDITIONS IF REQUIRED
+		if(domain_constants_h->micro_bc == true)
 		{
-			input_handler.read_field(domain_arrays_h->boundary_type, "BCType");
-			cudasafe(cudaMemcpy(boundary_type_d, boundary_type_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+			input_handler.read_field(domain_h->micro_bc, "MicroBC");
+			cudasafe(cudaMemcpy(micro_bc_d, micro_bc_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		}
 
-			input_handler.read_field(domain_arrays_h->boundary_value, "BCValue");
-			cudasafe(cudaMemcpy(boundary_value_d, boundary_value_h, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		// LOAD MACRO BOUNDARY CONDITIONS IF REQUIRED
+		if(domain_constants_h->macro_bc == true)
+		{
+			input_handler.read_field(domain_h->macro_bc, "MacroBC");
+			cudasafe(cudaMemcpy(macro_bc_d, macro_bc_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+
+			char vel_labels[3][33];
+			strcpy(vel_labels[0], "VelocityX");
+			strcpy(vel_labels[1], "VelocityY");
+			strcpy(vel_labels[2], "VelocityZ");
+
+			double *u_d_tmp[DIM];
+			cudasafe(cudaMemcpy(u_d_tmp, u_d, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+			for(int d=0;d<DIM;d++)
+			{
+				input_handler.read_field(domain_h->u[d], vel_labels[d]);
+				cudasafe(cudaMemcpy(u_d_tmp[d], u_h[d], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+			}
+
+			input_handler.read_field(domain_h->rho, "Rho");
+			cudasafe(cudaMemcpy(rho_d, rho_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 		}
 
 		if(domain_constants_h->init_type == 0)
@@ -223,18 +251,18 @@ class ModelBuilder
 }
 
 public:
-	ModelBuilder (char *, Lattice*, Lattice*, DomainConstant*, DomainConstant*, DomainArray*, DomainArray*, OutputController*, OutputController*, Timing*, ProjectStrings*);
+	ModelBuilder (char *, Lattice*, Lattice*, DomainConstant*, DomainConstant*, Domain*, Domain*, OutputController*, OutputController*, Timing*, ProjectStrings*);
 
 	ModelBuilder ();
 
-	void get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project)
+	void get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, Domain *domain_host, Domain *domain_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project)
 	{
 		lattice_host = lattice_h;
 		lattice_device = lattice_d;
 		domain_constants_host = domain_constants_h;
 		domain_constants_device = domain_constants_d;
-		domain_arrays_host = domain_arrays_h;
-		domain_arrays_device = domain_arrays_d;
+		domain_host = domain_h;
+		domain_device = domain_d;
 		output_controller_host = output_controller_h;
 		output_controller_device = output_controller_d;
 		time = time_t;
@@ -243,14 +271,14 @@ public:
 
 };
 
-ModelBuilder::ModelBuilder (char *input_filename, Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, DomainArray *domain_arrays_host, DomainArray *domain_arrays_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project) 
+ModelBuilder::ModelBuilder (char *input_filename, Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, Domain *domain_host, Domain *domain_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project) 
 {
 	lattice_h= lattice_host;
 	lattice_d= lattice_device;
 	domain_constants_h= domain_constants_host;
 	domain_constants_d= domain_constants_device;
-	domain_arrays_h= domain_arrays_host;
-	domain_arrays_d= domain_arrays_device;
+	domain_h= domain_host;
+	domain_d= domain_device;
 	output_controller_h= output_controller_host;
 	output_controller_d = output_controller_device;
 	time_t = time;

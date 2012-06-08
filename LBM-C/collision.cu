@@ -44,7 +44,7 @@ __device__ inline double e_mul_u(Node *current_node, int *i)
 	return value*3.;
 }
 
-__device__ __noinline__ void bgk_collision(Node *current_node, double *tau, double *B)
+__device__ __noinline__ void bgk_collision(Node *current_node, double *tau)
 {
 	double f_eq[Q], u_sq, eu;
 
@@ -63,7 +63,7 @@ __device__ __noinline__ void bgk_collision(Node *current_node, double *tau, doub
 	}
 }
 
-__device__ __noinline__ void guo_bgk_collision(Node *current_node, double *tau, double *B)
+__device__ __noinline__ void guo_bgk_collision(Node *current_node, double *tau)
 {
 	double f_eq[Q], u_sq, eu, F_coeff[DIM], force_term[Q];
 	int d;
@@ -107,7 +107,7 @@ __device__ __noinline__ void guo_bgk_collision(Node *current_node, double *tau, 
 	}
 }
 
-__device__ __noinline__ void ntpor_collision(Node *current_node, double *tau, double *B)
+__device__ __noinline__ void ntpor_collision(Node *current_node, double *tau)
 {
 	double f_eq[Q], u_sq, eu, collision_bgk, collision_s, tmp[Q];
 
@@ -124,7 +124,7 @@ __device__ __noinline__ void ntpor_collision(Node *current_node, double *tau, do
 	{
 		collision_bgk = (1.0/(*tau)) * (current_node->f[i]-f_eq[i]);
 		collision_s = current_node->f[domain_constants.opp[i]]-current_node->f[i];
-		tmp[i] = current_node->f[i] - (1-(*B))*collision_bgk + (*B)*collision_s;
+		tmp[i] = current_node->f[i] - (1-(current_node->B))*collision_bgk + (current_node->B)*collision_s;
 	}
 
 	for(int i =0;i<Q;i++)
@@ -134,7 +134,7 @@ __device__ __noinline__ void ntpor_collision(Node *current_node, double *tau, do
 
 }
 
-__device__ void guo_ntpor_collision(Node *current_node, double *tau, double *B)
+__device__ void guo_ntpor_collision(Node *current_node, double *tau)
 {
 	double f_eq[Q], u_sq, eu, collision_bgk, collision_s, F_coeff[DIM], force_term[Q], tmp[Q];
 	int d;
@@ -177,7 +177,7 @@ __device__ void guo_ntpor_collision(Node *current_node, double *tau, double *B)
 		collision_bgk = (1.0/(*tau)) * (current_node->f[i]-f_eq[i]);
 		collision_s = current_node->f[domain_constants.opp[i]]-current_node->f[i];
 
-		tmp[i] = current_node->f[i] - (1-(*B))*(collision_bgk) + (*B)*collision_s + (1-(*B))*force_term[i];
+		tmp[i] = current_node->f[i] - (1-(current_node->B))*(collision_bgk) + (current_node->B)*collision_s + (1-(current_node->B))*force_term[i];
 	}
 
 	for(int i =0;i<Q;i++)
@@ -186,7 +186,7 @@ __device__ void guo_ntpor_collision(Node *current_node, double *tau, double *B)
 	}
 }
 
-__device__ void bounceback(Node *current_node, double *tau, double *B)
+__device__ void bounceback(Node *current_node, double *tau)
 {
 	double tmp[Q];
 	for(int i=0;i<Q;i++)

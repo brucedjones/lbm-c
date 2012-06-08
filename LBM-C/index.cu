@@ -72,13 +72,13 @@
 
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_device;
-DomainArray *domain_arrays_device;
+Domain *domain_device;
 DomainConstant *domain_constants_device;
 OutputController *output_controller_device;
 
 // HOST VARIABLE DECLARATION
 Lattice *lattice_host, *lattice_device_prototype;
-DomainArray *domain_arrays_host;
+Domain *domain_host;
 DomainConstant *domain_constants_host;
 OutputController *output_controller_host;
 Timing *times;
@@ -191,7 +191,7 @@ void setup(char *data_file)
 	
 	// Allocate container structures
 	combi_malloc<Lattice>(&lattice_host, &lattice_device, sizeof(Lattice));
-	combi_malloc<DomainArray>(&domain_arrays_host, &domain_arrays_device, sizeof(DomainArray));
+	combi_malloc<Domain>(&domain_host, &domain_device, sizeof(Domain));
 	combi_malloc<DomainConstant>(&domain_constants_host, &domain_constants_device, sizeof(DomainConstant));
 	combi_malloc<OutputController>(&output_controller_host, &output_controller_device, sizeof(OutputController));
 	domain_constants_host = (DomainConstant *)malloc(sizeof(DomainConstant));
@@ -201,7 +201,7 @@ void setup(char *data_file)
 
 	ModelBuilder tmpmb(data_file, lattice_host, lattice_device,
 		domain_constants_host, domain_constants_device,
-		domain_arrays_host, domain_arrays_device,
+		domain_host, domain_device,
 		output_controller_host, output_controller_device,
 		times, project);
 	model_builder = tmpmb;
@@ -234,20 +234,20 @@ void output_macros(int time)
 		domain_size = domain_size*domain_constants_host->length[2];
 	#endif
 
-	Lattice lattice_tmp;
+	Domain domain_tmp;
 
-	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(&domain_tmp, domain_device, sizeof(Domain),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 	
 	double *u_tmp[DIM];
-	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(u_tmp, domain_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	for(int d=0;d<DIM;d++)
 	{
-		cudasafe(cudaMemcpy(lattice_host->u[d], u_tmp[d], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+		cudasafe(cudaMemcpy(domain_host->u[d], u_tmp[d], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 	}
 
 	double *rho_tmp;
-	cudasafe(cudaMemcpy(lattice_host->rho, lattice_tmp.rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(domain_host->rho, domain_tmp.rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	// Copy data from device to host
 	//cudasafe(cudaMemcpy(lattice_host->rho, lattice_device->rho, sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - rho");
@@ -277,28 +277,28 @@ void output_macros(int time)
 
 	if (output_controller_host->u[0] == true)
 	{
-		data[counter] = lattice_host->u[0];
+		data[counter] = domain_host->u[0];
 		strcpy(labels[counter],"VelocityX");
 		counter++;
 	}
 
 	if (output_controller_host->u[1] == true)
 	{
-		data[counter] = lattice_host->u[1];
+		data[counter] = domain_host->u[1];
 		strcpy(labels[counter],"VelocityY");
 		counter++;
 	}
 #if DIM > 2
 	if (output_controller_host->u[2] == true)
 	{
-		data[counter] = lattice_host->u[2];
+		data[counter] = domain_host->u[2];
 		strcpy(labels[counter],"VelocityZ");
 		counter++;
 	}
 #endif	
 	if (output_controller_host->rho == true)
 	{
-		data[counter] = lattice_host->rho;
+		data[counter] = domain_host->rho;
 		strcpy(labels[counter],"Density");
 		counter++;
 	}
@@ -339,7 +339,7 @@ void iterate(void)
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// ITERATE ONCE
-	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_arrays_device, store_macros);
+	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros);
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
@@ -403,14 +403,14 @@ void compute_residual(void)
 		domain_size = domain_size*domain_constants_host->length[2];
 	#endif
 
-	Lattice lattice_tmp;
+	Domain domain_tmp;
 
-	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(&domain_tmp, domain_device, sizeof(Domain),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	double *u_tmp[DIM];
-	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(u_tmp, domain_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
-	cudasafe(cudaMemcpy(lattice_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+	cudasafe(cudaMemcpy(domain_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
 
 	domain_constants_host->residual = error_RMS(u_tmp[0],domain_size);
 
@@ -425,19 +425,19 @@ void screen_mess(int iter, int coord[DIM])
 	#endif
 
 	double u[DIM],rho;
-	Lattice lattice_tmp;
+	Domain domain_tmp;
 
-	cudasafe(cudaMemcpy(&lattice_tmp, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(&domain_tmp, domain_device, sizeof(Domain),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 	
 	double *u_tmp[DIM];
-	cudasafe(cudaMemcpy(u_tmp, lattice_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(u_tmp, domain_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	for(int d=0;d<DIM;d++)
 	{
 		cudasafe(cudaMemcpy(&u[d], &u_tmp[d][idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 	}
 
-	cudasafe(cudaMemcpy(&rho, &lattice_tmp.rho[idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	cudasafe(cudaMemcpy(&rho, &domain_tmp.rho[idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	cout << "time = " << iter << "; rho = " << rho << "; uX = " << u[0]<< "; uY = " << u[1] << "; resid = " << domain_constants_host->residual << endl;
 }

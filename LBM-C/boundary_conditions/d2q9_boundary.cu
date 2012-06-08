@@ -11,7 +11,7 @@
 #include "d2q9_zh_defs.cu"
 #include "d2q9_sf_eq_defs.cuh"
 
-__device__ __constant__ boundary_condition boundary_conditions[6] = { zh_pressure_x, zh_pressure_X, NULL, NULL, NULL, NULL,
+__device__ __constant__ micro_condition micro_conditions[6] = { zh_pressure_x, zh_pressure_X, NULL, NULL, NULL, NULL,
 															sf_eq_pressure_x,sf_eq_pressure_X,NULL, NULL, NULL, NULL};
 
 
