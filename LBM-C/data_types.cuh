@@ -76,7 +76,7 @@ typedef struct
 } ProjectStrings;
 
 // Solver function pointers for boundary conditions and collisions
-typedef void (*micro_condition) (Node *);
+typedef void (*micro_condition) (Node *, Lattice *);
 typedef void (*macro_condition) (Node *, Domain *);
 typedef void (*collision) (Node *, double *);
 

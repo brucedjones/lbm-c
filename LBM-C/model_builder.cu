@@ -220,7 +220,7 @@ class ModelBuilder
 			}
 
 			input_handler.read_field(domain_h->rho, "Rho");
-			cudasafe(cudaMemcpy(rho_d, rho_h, sizeof(int)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+			cudasafe(cudaMemcpy(rho_d, rho_h, sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 		}
 
 		if(domain_constants_h->init_type == 0)

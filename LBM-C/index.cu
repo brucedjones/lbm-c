@@ -67,8 +67,10 @@
 #include "cuda_util.cu"
 
 // Include THRUST libraries
-#include <thrust/device_vector.h>
 #include <thrust/transform_reduce.h>
+#include <thrust/for_each.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/device_vector.h>
 
 // DEVICE VARIABLE DECLARATION
 Lattice *lattice_device;
@@ -135,9 +137,14 @@ int main(int argc, char **argv)
 	}
 
 	int coord[DIM];
-	coord[0] = 0;
+	coord[0] = floor((float)domain_constants_host->length[0]/2.);
+	//coord[0] = 0;
 	coord[1] = floor((float)domain_constants_host->length[1]/2.);
-
+	//coord[1] = 0;
+	#if DIM > 2
+		//coord[2] = floor((float)domain_constants_host->length[2]/2.);
+		coord[2] = 0;
+	#endif
 	for(int i = 1; i<times->max+1; i++)
 	{
 		if((times->plot>0 && i%times->plot == 0) ||
@@ -161,7 +168,11 @@ int main(int argc, char **argv)
 		if(times->steady_check>0 && i%times->steady_check == 0)
 		{
 			compute_residual();
-			if(domain_constants_host->residual<domain_constants_host->tolerance)
+			if(isIndeterminate(domain_constants_host->residual))
+			{
+				output_macros(i);
+				exit(1);
+			} else if(domain_constants_host->residual<domain_constants_host->tolerance)
 			{
 				output_macros(i);
 				break;
@@ -357,7 +368,7 @@ void swap_lattices(void)
 }
 
 // square<T> computes the square of a number f(x) -> x*x
-template <typename T>
+/*template <typename T>
 struct square
 {
     __host__ __device__
@@ -366,29 +377,70 @@ struct square
         }
 };
 
-double current_RMS(double *device_var, int var_size)
+template <typename T>
+struct velocity
 {
-	// wrap raw pointer with a device_ptr for thrust compatibility
-	thrust::device_ptr<double> dev_ptr(device_var);
+    __host__ __device__
+        T operator()(const T& x, const T& y, const T& z) const { 
+            return (x * x) + (y * y) + (z * z);
+        }
+};*/
 
-	// setup arguments for thrust transformation to square array elements then execute plus reduction
-    square<double>        unary_op;
-    thrust::plus<double> binary_op;
-    double init = 0;
+/*template <typename T>
+struct total_energy
+{
+    __host__ __device__
+        T operator()(const T& x, const T& y, const T& z, const T& rho) const { 
+            return 0.5*rho*((x * x) + (y * y) + (z * z));
+        }
+};*/
+
+struct energy
+{
+    template <typename Tuple>
+    __host__ __device__
+    void operator()(Tuple t)
+    {
+        thrust::get<4>(t) = 0.5*thrust::get<3>(t)*((thrust::get<0>(t)*thrust::get<0>(t)) + (thrust::get<1>(t)*thrust::get<1>(t)) + (thrust::get<2>(t)*thrust::get<2>(t)));
+    }
+};
+
+double current_RMS(double *device_var_x, double *device_var_y, double *device_var_z, double *device_var_rho, int var_size)
+{
+	double *result;
+	cudasafe(cudaMalloc((void **)&result,sizeof(double)*var_size), "Model Builder: Device memory allocation failed!");
+
+	// wrap raw pointer with a device_ptr for thrust compatibility
+	thrust::device_ptr<double> dev_ptr_x(device_var_x);
+	thrust::device_ptr<double> dev_ptr_y(device_var_y);
+	thrust::device_ptr<double> dev_ptr_z(device_var_z);
+	thrust::device_ptr<double> dev_ptr_rho(device_var_rho);
+	thrust::device_ptr<double> dev_ptr_res(result);
+
+	// apply the transformation
+    thrust::for_each(thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x, dev_ptr_y, dev_ptr_z, dev_ptr_rho, dev_ptr_res)),
+                     thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x+var_size, dev_ptr_y+var_size, dev_ptr_z+var_size, dev_ptr_rho+var_size, dev_ptr_res+var_size)),
+                     energy());
+	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
+    
+	double init = 0;
 
 	// Compute RMS value
-	double sum = thrust::transform_reduce(dev_ptr, dev_ptr+var_size, unary_op, init, binary_op);
+	double sum = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
 
 	double curr_RMS = sqrt(sum/var_size);
+	cout << "RESIDUAL = " << curr_RMS << endl;
+	cout << "SUM = " << sum << endl;
+	cout << "VAR_SIZE = " << var_size << endl;
 
 	return curr_RMS;
 }
 
 double prev_RMS = 0;
 
-double error_RMS(double *device_var, int var_size)
+double error_RMS(double *device_var_x, double *device_var_y, double *device_var_z, double *device_var_rho, int var_size)
 {
-	double curr_RMS = current_RMS(device_var, var_size);
+	double curr_RMS = current_RMS(device_var_x, device_var_y, device_var_z, device_var_rho, var_size);
 	double tmp = abs(curr_RMS-prev_RMS);
 
 	prev_RMS = curr_RMS;
@@ -410,11 +462,15 @@ void compute_residual(void)
 	double *u_tmp[DIM];
 	cudasafe(cudaMemcpy(u_tmp, domain_tmp.u, sizeof(double*)*DIM,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
-	cudasafe(cudaMemcpy(domain_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+	//double *rho_tmp;
+	//cudasafe(cudaMemcpy(rho_tmp, domain_tmp.rho, sizeof(double*),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
-	domain_constants_host->residual = error_RMS(u_tmp[0],domain_size);
+	/*cudasafe(cudaMemcpy(domain_host->u[0], u_tmp[0], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+	cudasafe(cudaMemcpy(domain_host->u[1], u_tmp[1], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");
+	cudasafe(cudaMemcpy(domain_host->u[2], u_tmp[2], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");*/
 
-	if(isIndeterminate(domain_constants_host->residual)) exit(1);
+//	domain_constants_host->residual = error_RMS(u_tmp[0],u_tmp[1],u_tmp[2], rho_tmp,domain_size);
+	domain_constants_host->residual = error_RMS(u_tmp[0],u_tmp[1],u_tmp[2], domain_tmp.rho,domain_size);
 }
 
 void screen_mess(int iter, int coord[DIM])
@@ -439,7 +495,11 @@ void screen_mess(int iter, int coord[DIM])
 
 	cudasafe(cudaMemcpy(&rho, &domain_tmp.rho[idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
-	cout << "time = " << iter << "; rho = " << rho << "; uX = " << u[0]<< "; uY = " << u[1] << "; resid = " << domain_constants_host->residual << endl;
+	cout << "time = " << iter << "; rho = " << rho << "; uX = " << u[0]<< "; uY = " << u[1] << "; ";
+	#if DIM>2
+		cout << "uZ = " << u[2] << "; ";
+	#endif
+	cout << "resid = " << domain_constants_host->residual << endl;
 }
 
 bool isIndeterminate(const double pV)
