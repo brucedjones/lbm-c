@@ -11,7 +11,7 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 {
 	// Declare Variables
 	int ixd, target_ixd, domain_size;
-	int i, d;
+	int i, d, macro_bc, micro_bc;
 	Node current_node;
 	
 	// Compute coordinates
@@ -46,8 +46,11 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		// Smagorinsky constant:
 		current_node.c_smag = domain_constants.c_smag;
 		// Boundary condition:
-		int macro_bc = domain->macro_bc[ixd];
-		int micro_bc = domain->micro_bc[ixd];
+		int macro_bc = 0;
+		if(domain_constants.macro_bc==true)	macro_bc = domain->macro_bc[ixd];
+		int micro_bc = 0;
+		if(domain_constants.micro_bc==true)	micro_bc = domain->micro_bc[ixd];
+
 		// Collision type:
 		int collision_type = (domain_constants.collision_type*2);	// Set collision type and optional forces
 		if(domain_constants.forcing==true)							// The type specified in domain_constants must be multiplied by two to match the listing

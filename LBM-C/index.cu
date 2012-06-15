@@ -367,64 +367,55 @@ void swap_lattices(void)
 	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers To Device");
 }
 
-// square<T> computes the square of a number f(x) -> x*x
-/*template <typename T>
-struct square
-{
-    __host__ __device__
-        T operator()(const T& x) const { 
-            return x * x;
-        }
-};
+#if DIM > 2
+	struct energy
+	{
+	    template <typename Tuple>
+	    __host__ __device__
+	    void operator()(Tuple t)
+	    {
+	        thrust::get<4>(t) = 0.5*thrust::get<3>(t)*((thrust::get<0>(t)*thrust::get<0>(t)) + (thrust::get<1>(t)*thrust::get<1>(t)) + (thrust::get<2>(t)*thrust::get<2>(t)));
+	    }
+	};
+#else
+	struct energy
+	{
+	    template <typename Tuple>
+	    __host__ __device__
+	    void operator()(Tuple t)
+	    {
+	        thrust::get<3>(t) = 0.5*thrust::get<2>(t)*((thrust::get<0>(t)*thrust::get<0>(t)) + (thrust::get<1>(t)*thrust::get<1>(t)));
+	}
+	};
+#endif
 
-template <typename T>
-struct velocity
-{
-    __host__ __device__
-        T operator()(const T& x, const T& y, const T& z) const { 
-            return (x * x) + (y * y) + (z * z);
-        }
-};*/
 
-/*template <typename T>
-struct total_energy
-{
-    __host__ __device__
-        T operator()(const T& x, const T& y, const T& z, const T& rho) const { 
-            return 0.5*rho*((x * x) + (y * y) + (z * z));
-        }
-};*/
-
-struct energy
-{
-    template <typename Tuple>
-    __host__ __device__
-    void operator()(Tuple t)
-    {
-        thrust::get<4>(t) = 0.5*thrust::get<3>(t)*((thrust::get<0>(t)*thrust::get<0>(t)) + (thrust::get<1>(t)*thrust::get<1>(t)) + (thrust::get<2>(t)*thrust::get<2>(t)));
-    }
-};
-
-double current_RMS(double *device_var_x, double *device_var_y, double *device_var_z, double *device_var_rho, int var_size)
+double current_RMS(double *device_var_u[DIM], double *device_var_rho, int var_size)
 {
 	double *result;
 	cudasafe(cudaMalloc((void **)&result,sizeof(double)*var_size), "Model Builder: Device memory allocation failed!");
 
 	// wrap raw pointer with a device_ptr for thrust compatibility
-	thrust::device_ptr<double> dev_ptr_x(device_var_x);
-	thrust::device_ptr<double> dev_ptr_y(device_var_y);
-	thrust::device_ptr<double> dev_ptr_z(device_var_z);
+	thrust::device_ptr<double> dev_ptr_x(device_var_u[0]);
+	thrust::device_ptr<double> dev_ptr_y(device_var_u[1]);
+	#if DIM > 2
+		thrust::device_ptr<double> dev_ptr_z(device_var_u[2]);
+	#endif
 	thrust::device_ptr<double> dev_ptr_rho(device_var_rho);
 	thrust::device_ptr<double> dev_ptr_res(result);
 
 	// apply the transformation
+	#if DIM > 2
     thrust::for_each(thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x, dev_ptr_y, dev_ptr_z, dev_ptr_rho, dev_ptr_res)),
                      thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x+var_size, dev_ptr_y+var_size, dev_ptr_z+var_size, dev_ptr_rho+var_size, dev_ptr_res+var_size)),
                      energy());
-	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
+	#else
+		thrust::for_each(thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x, dev_ptr_y, dev_ptr_rho, dev_ptr_res)),
+                     thrust::make_zip_iterator(thrust::make_tuple(dev_ptr_x+var_size, dev_ptr_y+var_size, dev_ptr_rho+var_size, dev_ptr_res+var_size)),
+                     energy());
+	#endif
+	Check_CUDA_Error("Steady State Calculation Kernel Execution Failed!");  
     
-	double init = 0;
-
 	// Compute RMS value
 	double sum = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
 
@@ -438,9 +429,9 @@ double current_RMS(double *device_var_x, double *device_var_y, double *device_va
 
 double prev_RMS = 0;
 
-double error_RMS(double *device_var_x, double *device_var_y, double *device_var_z, double *device_var_rho, int var_size)
+double error_RMS(double *device_var_u[DIM], double *device_var_rho, int var_size)
 {
-	double curr_RMS = current_RMS(device_var_x, device_var_y, device_var_z, device_var_rho, var_size);
+	double curr_RMS = current_RMS(device_var_u, device_var_rho, var_size);
 	double tmp = abs(curr_RMS-prev_RMS);
 
 	prev_RMS = curr_RMS;
@@ -470,7 +461,7 @@ void compute_residual(void)
 	cudasafe(cudaMemcpy(domain_host->u[2], u_tmp[2], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");*/
 
 //	domain_constants_host->residual = error_RMS(u_tmp[0],u_tmp[1],u_tmp[2], rho_tmp,domain_size);
-	domain_constants_host->residual = error_RMS(u_tmp[0],u_tmp[1],u_tmp[2], domain_tmp.rho,domain_size);
+	domain_constants_host->residual = error_RMS(u_tmp, domain_tmp.rho,domain_size);
 }
 
 void screen_mess(int iter, int coord[DIM])

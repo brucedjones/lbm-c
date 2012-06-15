@@ -6,8 +6,8 @@
 
 #define STR_LENGTH 64
 
-#define D3Q15
-//#define D2Q9
+//#define D3Q15
+#define D2Q9
 
 #ifdef D2Q9
 
