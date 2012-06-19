@@ -66,6 +66,7 @@ typedef struct
 	bool rho;
 	bool pressure;
 	bool interactive;
+	int screen_node[DIM];
 } OutputController;
 
 typedef struct

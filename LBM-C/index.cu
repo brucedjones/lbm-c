@@ -136,15 +136,6 @@ int main(int argc, char **argv)
 		domain_size = domain_size*domain_constants_host->length[d];
 	}
 
-	int coord[DIM];
-	coord[0] = floor((float)domain_constants_host->length[0]/2.);
-	//coord[0] = 0;
-	coord[1] = floor((float)domain_constants_host->length[1]/2.);
-	//coord[1] = 0;
-	#if DIM > 2
-		//coord[2] = floor((float)domain_constants_host->length[2]/2.);
-		coord[2] = 0;
-	#endif
 	for(int i = 1; i<times->max+1; i++)
 	{
 		if((times->plot>0 && i%times->plot == 0) ||
@@ -161,7 +152,7 @@ int main(int argc, char **argv)
 
 		if(times->screen>0 && i%times->screen == 0)
 		{
-			screen_mess(i,coord);
+			screen_mess(i,output_controller_host->screen_node);
 			store_macros = false;
 		}
 
@@ -417,13 +408,10 @@ double current_RMS(double *device_var_u[DIM], double *device_var_rho, int var_si
 	Check_CUDA_Error("Steady State Calculation Kernel Execution Failed!");  
     
 	// Compute RMS value
-	double sum = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
+	//double sum = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
+	//double curr_RMS = sqrt(sum/var_size);
 
-	double curr_RMS = sqrt(sum/var_size);
-	cout << "RESIDUAL = " << curr_RMS << endl;
-	cout << "SUM = " << sum << endl;
-	cout << "VAR_SIZE = " << var_size << endl;
-
+	double curr_RMS = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
 	return curr_RMS;
 }
 
@@ -432,7 +420,7 @@ double prev_RMS = 0;
 double error_RMS(double *device_var_u[DIM], double *device_var_rho, int var_size)
 {
 	double curr_RMS = current_RMS(device_var_u, device_var_rho, var_size);
-	double tmp = abs(curr_RMS-prev_RMS);
+	double tmp = abs(curr_RMS-prev_RMS)/times->steady_check;
 
 	prev_RMS = curr_RMS;
 
@@ -481,7 +469,7 @@ void screen_mess(int iter, int coord[DIM])
 
 	for(int d=0;d<DIM;d++)
 	{
-		cudasafe(cudaMemcpy(&u[d], &u_tmp[d][idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+		cudasafe(cudaMemcpy(&u[d], &u_tmp[d][idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: BLAHBLAHCopy from device memory failed!");
 	}
 
 	cudasafe(cudaMemcpy(&rho, &domain_tmp.rho[idx], sizeof(double),cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");

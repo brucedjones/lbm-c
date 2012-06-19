@@ -178,6 +178,21 @@ class InfileReader {
 			if(output_controller->rho==true) cout << "Output Density" << " = " << output_controller->rho << endl;
 			if(output_controller->pressure==true) cout << "Output Pressure" << " = " << output_controller->pressure << endl;
 		}
+
+		else if (line.find("ScreenNode")!=string::npos)
+		{
+			int tmp;
+			stringstream(line) >> field_name >> output_controller->screen_node[0] >> output_controller->screen_node[1] >> tmp;
+			#if DIM > 2
+				if(domain_constants->length[2]>0) output_controller->screen_node[2] = tmp;
+			#endif
+			cout << "Screen Node X" << " = " << output_controller->screen_node[0] << endl;
+			cout << "Screen Node Y" << " = " << output_controller->screen_node[1] << endl;
+			#if DIM > 2
+				cout << "Screen Node Z" << " = " << output_controller->screen_node[2] << endl;
+			#endif
+		}
+
 		else if (line.find("Interactive")!=string::npos)
 		{
 			stringstream(line) >> field_name >> output_controller->interactive;
