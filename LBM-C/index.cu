@@ -213,11 +213,6 @@ void setup(char *data_file)
 		times, project);
 	model_builder = tmpmb;
 
-	/*model_builder.get_model(lattice_host, lattice_device,
-		domain_constants_host, domain_constants_device,
-		domain_arrays_host, domain_arrays_device,
-		output_controller_host, output_controller_device,
-		times, project);*/
 	int z_len = 1;
 	#if DIM > 2
 		z_len = domain_constants_host->length[2];

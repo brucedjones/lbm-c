@@ -21,7 +21,7 @@ class ModelBuilder
 	Lattice *lattice_d;
 	Domain *domain_d;
 	DomainConstant *domain_constants_d;
-	double **f_1_d, **f_2_d, *rho_d, **u_d, *boundary_value_d, *geometry_d, **force_d; 
+	double **f_1_d, **f_2_d, *rho_d, **u_d, *geometry_d, **force_d; 
 	int *micro_bc_d;
 	int *macro_bc_d;
 
@@ -32,7 +32,7 @@ class ModelBuilder
 	Lattice *lattice_h, *lattice_d_prototype;
 	Domain *domain_h;
 	DomainConstant *domain_constants_h;
-	double **f_h, *rho_h, **u_h, *boundary_value_h, *geometry_h, **force_h;
+	double **f_h, *rho_h, **u_h, *geometry_h, **force_h;
 	int *micro_bc_h;
 	int *macro_bc_h;
 
@@ -258,20 +258,6 @@ public:
 	ModelBuilder (char *, Lattice*, Lattice*, DomainConstant*, DomainConstant*, Domain*, Domain*, OutputController*, OutputController*, Timing*, ProjectStrings*);
 
 	ModelBuilder ();
-
-	void get_model(Lattice *lattice_host, Lattice *lattice_device, DomainConstant *domain_constants_host, DomainConstant *domain_constants_device, Domain *domain_host, Domain *domain_device, OutputController *output_controller_host, OutputController *output_controller_device, Timing *time, ProjectStrings *project)
-	{
-		lattice_host = lattice_h;
-		lattice_device = lattice_d;
-		domain_constants_host = domain_constants_h;
-		domain_constants_device = domain_constants_d;
-		domain_host = domain_h;
-		domain_device = domain_d;
-		output_controller_host = output_controller_h;
-		output_controller_device = output_controller_d;
-		time = time_t;
-		project = project_t;
-	}
 
 };
 
