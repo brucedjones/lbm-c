@@ -125,12 +125,11 @@ int main(int argc, char **argv)
 	printf("\nPress return to continue...");
 	if (output_controller_host->interactive == true) getchar();
 
-	domain_constants_host->residual = 0;
-
 	// Get current clock cycle number
 	clock_t t1=clock();
 
 	int domain_size=1;
+	int stop=0;
 	for(int d = 0; d<DIM ;d++)
 	{
 		domain_size = domain_size*domain_constants_host->length[d];
@@ -158,16 +157,22 @@ int main(int argc, char **argv)
 
 		if(times->steady_check>0 && i%times->steady_check == 0)
 		{
-			compute_residual();
-			if(isIndeterminate(domain_constants_host->residual))
+			compute_residual(i);
+			
+			for(int resid=0;resid<NUM_RESIDS;resid++)
+			{
+				if(domain_constants_host->residual[resid]<domain_constants_host->tolerance) stop += 1;
+			}
+			if(isIndeterminate(stop))
 			{
 				output_macros(i);
 				exit(1);
-			} else if(domain_constants_host->residual<domain_constants_host->tolerance)
+			} else if(stop==NUM_RESIDS)
 			{
 				output_macros(i);
 				break;
 			}
+			stop = 0;
 			store_macros = false;
 		}
 	}
@@ -412,6 +417,9 @@ double current_RMS(double *device_var_u[DIM], double *device_var_rho, int var_si
 	//double curr_RMS = sqrt(sum/var_size);
 
 	double curr_RMS = thrust::reduce(dev_ptr_res, dev_ptr_res+var_size, (double) 0, thrust::plus<double>());
+
+	cudasafe(cudaFree(result),"Freeing Device Memory");
+
 	return curr_RMS;
 }
 
@@ -420,14 +428,14 @@ double prev_RMS = 0;
 double error_RMS(double *device_var_u[DIM], double *device_var_rho, int var_size)
 {
 	double curr_RMS = current_RMS(device_var_u, device_var_rho, var_size);
-	double tmp = abs(curr_RMS-prev_RMS)/times->steady_check;
+	double tmp = (abs(curr_RMS-prev_RMS)/times->steady_check)/curr_RMS;
 
 	prev_RMS = curr_RMS;
 
 	return tmp;
 }
 
-void compute_residual(void)
+void compute_residual(int time)
 {
 	int domain_size = domain_constants_host->length[0]*domain_constants_host->length[1];
 	#if DIM > 2
@@ -449,7 +457,7 @@ void compute_residual(void)
 	cudasafe(cudaMemcpy(domain_host->u[2], u_tmp[2], sizeof(double)*domain_size,cudaMemcpyDeviceToHost),"Copy Data: Output Data - u");*/
 
 //	domain_constants_host->residual = error_RMS(u_tmp[0],u_tmp[1],u_tmp[2], rho_tmp,domain_size);
-	domain_constants_host->residual = error_RMS(u_tmp, domain_tmp.rho,domain_size);
+	domain_constants_host->residual[time%NUM_RESIDS] = error_RMS(u_tmp, domain_tmp.rho,domain_size);
 }
 
 void screen_mess(int iter, int coord[DIM])
@@ -478,7 +486,7 @@ void screen_mess(int iter, int coord[DIM])
 	#if DIM>2
 		cout << "uZ = " << u[2] << "; ";
 	#endif
-	cout << "resid = " << domain_constants_host->residual << endl;
+	cout << "resid = " << domain_constants_host->residual[iter%NUM_RESIDS] << endl;
 }
 
 bool isIndeterminate(const double pV)

@@ -35,7 +35,7 @@ typedef struct
 	bool micro_bc;
 	int collision_type;
 	int init_type;
-	double residual;
+	double residual[NUM_RESIDS];
 	double tolerance;
 	double c_smag;
 } DomainConstant;

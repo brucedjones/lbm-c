@@ -69,6 +69,10 @@ class ModelBuilder
 		LOAD_E(domain_constants_h->e);
 		LOAD_OMEGA(domain_constants_h->omega);
 		LOAD_OPP(domain_constants_h->opp);
+		for(int i =0;i<NUM_RESIDS;i++)
+		{
+			domain_constants_h->residual[i] = 1;
+		}
 
 		//transfer domain_constants to device (cant think of a better place to put this)
 		//cudasafe(cudaMemcpy(domain_constants_d, domain_constants_h, sizeof(DomainConstant),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");

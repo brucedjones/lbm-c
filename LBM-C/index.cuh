@@ -10,7 +10,7 @@ void swap_lattices(void);
 
 double current_RMS(double *device_var, int var_size);
 double error_RMS(double *device_var, int var_size);
-void compute_residual(void);
+void compute_residual(int time);
 void screen_mess(int iter, int coord[DIM]);
 bool isIndeterminate(const double pV);
 
