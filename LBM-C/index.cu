@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 			{
 				if(domain_constants_host->residual[resid]<domain_constants_host->tolerance) stop += 1;
 			}
-			if(isIndeterminate(stop))
+			if(isIndeterminate(domain_constants_host->residual[i%NUM_RESIDS]))
 			{
 				output_macros(i);
 				exit(1);
