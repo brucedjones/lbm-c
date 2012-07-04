@@ -71,7 +71,7 @@ __device__ __noinline__ void guo_bgk_collision(Node *current_node, double *tau)
 	#pragma unroll
 	for(d = 0; d<DIM; d++)
 	{
-		current_node->u[d] = current_node->u[d] + (1/2)*current_node->rho*current_node->F[d];
+		current_node->u[d] = current_node->u[d] + (1/(2*current_node->rho))*current_node->F[d];
 	}
 
 	u_sq = u_square(current_node);
@@ -142,7 +142,7 @@ __device__ void guo_ntpor_collision(Node *current_node, double *tau)
 	#pragma unroll
 	for(d = 0; d<DIM; d++)
 	{
-		current_node->u[d] = current_node->u[d] + (1/2)*current_node->rho*current_node->F[d];
+		current_node->u[d] = current_node->u[d] + (1/(2*current_node->rho))*current_node->F[d];
 	}
 
 	u_sq = u_square(current_node);
