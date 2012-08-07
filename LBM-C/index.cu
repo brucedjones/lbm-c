@@ -423,7 +423,7 @@ double prev_RMS = 0;
 double error_RMS(double *device_var_u[DIM], double *device_var_rho, int var_size)
 {
 	double curr_RMS = current_RMS(device_var_u, device_var_rho, var_size);
-	double tmp = (abs(curr_RMS-prev_RMS)/times->steady_check)/curr_RMS;
+	double tmp = ((abs(curr_RMS-prev_RMS)/times->steady_check))/curr_RMS;
 
 	prev_RMS = curr_RMS;
 

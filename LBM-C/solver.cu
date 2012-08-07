@@ -54,12 +54,12 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		// Collision type:
 		int collision_type = (domain_constants.collision_type*2);	// Set collision type and optional forces
 		if(domain_constants.forcing==true)							// The type specified in domain_constants must be multiplied by two to match the listing
-		{															// order in the collision_functions array, an additional 1 is added to the collision type
+		{	
+			collision_type += 1;									// order in the collision_functions array, an additional 1 is added to the collision type
 			#pragma unroll											// to specify a collision with guo body forces
 			for (d=0;d<DIM;d++)
 			{
 				current_node.F[d] = domain->force[d][ixd];
-				if(current_node.F[d]>0) collision_type += 1;
 			}
 		}
 		// Geometry:
