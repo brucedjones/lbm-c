@@ -27,6 +27,7 @@ typedef struct
 	int e[DIM][Q];
 	double omega[Q];
 	double tau;
+	double tau_mrt[Q];
 	int h;
 	int dt;
 	int length[DIM];
@@ -38,6 +39,8 @@ typedef struct
 	double residual[NUM_RESIDS];
 	double tolerance;
 	double c_smag;
+	double M[Q][Q];
+	double M_inv[Q][Q];
 } DomainConstant;
 
 typedef struct
