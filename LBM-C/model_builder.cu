@@ -69,6 +69,8 @@ class ModelBuilder
 		LOAD_E(domain_constants_h->e);
 		LOAD_OMEGA(domain_constants_h->omega);
 		LOAD_OPP(domain_constants_h->opp);
+		LOAD_M(domain_constants_h->M);
+		LOAD_M_INV(domain_constants_h->M_inv);
 		for(int i =0;i<NUM_RESIDS;i++)
 		{
 			domain_constants_h->residual[i] = 1;

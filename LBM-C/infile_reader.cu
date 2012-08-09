@@ -61,6 +61,17 @@ class InfileReader {
 			stringstream(line) >> field_name >> project->output_fname;
 			cout << field_name << " = " << project->output_fname << endl;
 		}
+		else if (line.find("TauMRT")!=string::npos)
+		{
+			string screen_label = "S_";
+			stringstream(line) >> field_name >> domain_constants->tau_mrt[0] >> domain_constants->tau_mrt[1] >> domain_constants->tau_mrt[2] >> domain_constants->tau_mrt[3] >> domain_constants->tau_mrt[4] >> domain_constants->tau_mrt[5] >> domain_constants->tau_mrt[6] >> domain_constants->tau_mrt[7] >> domain_constants->tau_mrt[8];
+			
+			for(int i =0; i<Q; i++)
+			{
+				//stringstream(line) >> domain_constants->tau_mrt[i];
+				cout << screen_label << i << " = " << domain_constants->tau_mrt[i] << endl;
+			}
+		}
 		else if (line.find("Tau")!=string::npos)
 		{
 			stringstream(line) >> field_name >> domain_constants->tau;
@@ -114,6 +125,11 @@ class InfileReader {
 			{
 				col_type = "NTPOR";
 				domain_constants->collision_type = 1;
+			}
+			if(line.find("MRT")!=string::npos)
+			{
+				col_type = "MRT";
+				domain_constants->collision_type = 2;
 			}
 			stringstream(line) >> field_name;
 			cout << field_name << " = " << col_type << endl;
@@ -178,7 +194,6 @@ class InfileReader {
 			if(output_controller->rho==true) cout << "Output Density" << " = " << output_controller->rho << endl;
 			if(output_controller->pressure==true) cout << "Output Pressure" << " = " << output_controller->pressure << endl;
 		}
-
 		else if (line.find("ScreenNode")!=string::npos)
 		{
 			int tmp;
@@ -198,7 +213,7 @@ class InfileReader {
 			stringstream(line) >> field_name >> output_controller->interactive;
 			cout << field_name << " = " << output_controller->interactive << endl;
 		} else {
-			cout << line_tot <<endl;
+			cout << line_tot << endl;
 		}
 	}
 

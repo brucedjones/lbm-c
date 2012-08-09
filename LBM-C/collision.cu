@@ -16,8 +16,8 @@ __device__ __constant__ DomainConstant domain_constants;
 #define POW4(x) x*x*x*x
 #define INVERSEPOW(x) {1./x}
 
-__device__ collision collision_functions[6] = { bgk_collision, bgk_guo_collision, bgk_ntpor_collision, bgk_guo_ntpor_collision, bounceback,
-												mrt_collision};
+__device__ collision collision_functions[6] = { bgk_collision, bgk_guo_collision, bgk_ntpor_collision, bgk_ntpor_guo_collision,
+												mrt_collision, bounceback};
 
 __device__ inline double u_square(Node *current_node)
 {
@@ -135,7 +135,7 @@ __device__ __noinline__ void bgk_ntpor_collision(Node *current_node, double *tau
 
 }
 
-__device__ void bgk_guo_ntpor_collision(Node *current_node, double *tau)
+__device__ void bgk_ntpor_guo_collision(Node *current_node, double *tau)
 {
 	double f_eq[Q], u_sq, eu, collision_bgk, collision_s, F_coeff[DIM], force_term[Q], tmp[Q];
 	int d;
@@ -187,24 +187,6 @@ __device__ void bgk_guo_ntpor_collision(Node *current_node, double *tau)
 	}
 }
 
-__device__ void bounceback(Node *current_node, double *tau)
-{
-	double tmp[Q];
-	for(int i=0;i<Q;i++)
-	{
-		tmp[i] = current_node->f[i];
-	}
-
-	for(int i=0;i<Q;i++)
-	{
-		current_node->f[i] = tmp[domain_constants.opp[i]];
-	}
-
-	current_node->u[0] = 0;
-	current_node->u[1] = 0;
-	current_node->rho = 0;
-}
-
 __device__ void mrt_collision(Node *current_node, double *tau)
 {
 	double m_eq[Q],m[Q];
@@ -245,6 +227,65 @@ __device__ void mrt_collision(Node *current_node, double *tau)
 	
 }
 
+__device__ void mrt_guo_collision(Node *current_node, double *tau)
+{
+	double m_eq[Q],m[Q] F_coeff[DIM], force_term[Q];
+	int d;
+	
+	#ifdef D2Q9
+		meq_d2q9(current_node,m_eq);
+	#endif
+
+	#ifdef D3Q15
+		meq_d3q15(current_node, m_eq);
+	#endif
+
+	for(int i = 0; i<Q; i++)
+	{
+		m[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
+			m[i] = m[i] + domain_constants.M[i][j]*current_node->f[j];
+		}
+	}
+
+	for(int i = 0; i<Q;i++)
+	{
+		m[i] = domain_constants.tau_mrt[i]*(m[i]-m_eq[i]);
+	}
+
+	for(int i = 0; i<Q; i++)
+	{
+		//reuse m_eq to save on memory...
+		m_eq[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
+			
+			m_eq[i] = m_eq[i] + domain_constants.M_inv[i][j]*m[j];
+		}
+		current_node->f[i] = current_node->f[i] - m_eq[i]; // m_eq here is not equilibrium distribution, 
+	}													   // it is the result of previous computation!!!!
+	
+}
+
+__device__ void bounceback(Node *current_node, double *tau)
+{
+	double tmp[Q];
+	for(int i=0;i<Q;i++)
+	{
+		tmp[i] = current_node->f[i];
+	}
+
+	for(int i=0;i<Q;i++)
+	{
+		current_node->f[i] = tmp[domain_constants.opp[i]];
+	}
+
+	current_node->u[0] = 0;
+	current_node->u[1] = 0;
+	current_node->rho = 0;
+}
+
 __device__ void turbulent_viscosity(Node *current_node, double *f_eq, double *tau)
 {
 	double q_bar[DIM][DIM];
@@ -270,9 +311,9 @@ __device__ void meq_d2q9(Node *current_node, double *meq)
 	double jx = current_node->rho*current_node->u[0];
 	double jy = current_node->rho*current_node->u[1];
 
-	meq[0] = *rho;
-	meq[1] = (-2**rho)+3*(jx*jx+jy*jy);
-	meq[2] = *rho-3*(jx*jx+jy*jy);
+	meq[0] = current_node->rho;
+	meq[1] = (-2*current_node->rho)+3*(jx*jx+jy*jy);
+	meq[2] = current_node->rho-3*(jx*jx+jy*jy);
 	meq[3] = jx;
 	meq[4] = -jx;
 	meq[5] = jy;
@@ -287,9 +328,9 @@ __device__ void meq_d3q15(Node *current_node, double *meq)
 	double jy = current_node->rho*current_node->u[1];
 	double jz = current_node->rho*current_node->u[2];
 
-	meq[0] = *rho;
-	meq[1] = (-1**rho)+(jx*jx+jy*jy+jz*jz);
-	meq[2] = -*rho;
+	meq[0] = current_node->rho;
+	meq[1] = (-1*current_node->rho)+(jx*jx+jy*jy+jz*jz);
+	meq[2] = -current_node->rho;
 	meq[3] = jx;
 	meq[4] = (-7/3)*jx;
 	meq[5] = jy;
