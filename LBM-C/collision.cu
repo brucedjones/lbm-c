@@ -16,8 +16,9 @@ __device__ __constant__ DomainConstant domain_constants;
 #define POW4(x) x*x*x*x
 #define INVERSEPOW(x) {1./x}
 
-__device__ collision collision_functions[6] = { bgk_collision, bgk_guo_collision, bgk_ntpor_collision, bgk_ntpor_guo_collision,
-												mrt_collision, bounceback};
+__device__ collision collision_functions[9] = { bgk_collision, bgk_guo_collision, bgk_ntpor_collision, bgk_ntpor_guo_collision,
+												mrt_collision, mrt_guo_collision, mrt_ntpor_collision, mrt_ntpor_guo_collision,
+												bounceback};
 
 __device__ inline double u_square(Node *current_node)
 {
@@ -229,8 +230,80 @@ __device__ void mrt_collision(Node *current_node, double *tau)
 
 __device__ void mrt_guo_collision(Node *current_node, double *tau)
 {
-	double m_eq[Q],m[Q] F_coeff[DIM], force_term[Q];
+	double m_eq[Q],m[Q], F_coeff[DIM], force_term[Q];
 	int d;
+	
+	// Add force contribution to velocity
+	#pragma unroll
+	for(d = 0; d<DIM; d++)
+	{
+		current_node->u[d] = current_node->u[d] + (1/(2*current_node->rho))*current_node->F[d];
+	}
+
+	// Calculate forcing term
+	for(int i=0;i<Q;i++)
+	{
+		#pragma unroll
+		for(d = 0; d<DIM; d++)
+		{
+		#if DIM > 2
+			F_coeff[d] = domain_constants.omega[i]*(1-(1/(2*(*tau))))*(((domain_constants.e[d][i]-current_node->u[d])*3)+(domain_constants.e[d][i]*9*((domain_constants.e[0][i]*current_node->u[0])+(domain_constants.e[1][i]*current_node->u[1])+(domain_constants.e[2][i]*current_node->u[2]))));
+		#else
+			F_coeff[d] = domain_constants.omega[i]*(1-(1/(2*(*tau))))*(((domain_constants.e[d][i]-current_node->u[d])*3)+(domain_constants.e[d][i]*9*((domain_constants.e[0][i]*current_node->u[0])+(domain_constants.e[1][i]*current_node->u[1]))));
+		#endif
+		}
+
+		force_term[i] = 0;
+		#pragma unroll
+		for(d = 0; d<DIM; d++)
+		{
+			force_term[i] += F_coeff[d]*current_node->F[d];
+		}
+	}
+
+	// Calculate equilibrium distribution
+	#ifdef D2Q9
+		meq_d2q9(current_node,m_eq);
+	#endif
+
+	#ifdef D3Q15
+		meq_d3q15(current_node, m_eq);
+	#endif
+
+	// Convert PDF's to MDF's (Momentum Distribution Function)
+	for(int i = 0; i<Q; i++)
+	{
+		m[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
+			m[i] = m[i] + domain_constants.M[i][j]*current_node->f[j];
+		}
+	}
+
+	// Execute MRT collision
+	for(int i = 0; i<Q;i++)
+	{
+		m[i] = domain_constants.tau_mrt[i]*(m[i]-m_eq[i]);
+	}
+
+	// convert MDF's back to PDF's adding the result of collision and forcing
+	for(int i = 0; i<Q; i++)
+	{
+		//reuse m_eq to save on memory...
+		m_eq[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
+			
+			m_eq[i] = m_eq[i] + domain_constants.M_inv[i][j]*m[j];
+		}
+		current_node->f[i] = current_node->f[i] - m_eq[i] + force_term[i]; // m_eq here is not equilibrium distribution, 
+	}																		// it is the result of previous computation!!!!
+	
+}
+
+__device__ void mrt_ntpor_collision(Node *current_node, double *tau)
+{
+	double m_eq[Q],m[Q], collision_s;
 	
 	#ifdef D2Q9
 		meq_d2q9(current_node,m_eq);
@@ -260,11 +333,89 @@ __device__ void mrt_guo_collision(Node *current_node, double *tau)
 		m_eq[i] = 0;
 		for(int j=0; j<Q; j++)
 		{
+			m_eq[i] = m_eq[i] + domain_constants.M_inv[i][j]*m[j];
+		}
+
+		collision_s = current_node->f[domain_constants.opp[i]]-current_node->f[i];
+
+		current_node->f[i] = current_node->f[i] - (1-(current_node->B))*m_eq[i] + (current_node->B)*collision_s; // m_eq here is not equilibrium distribution, 
+	}													   // it is the result of previous computation!!!!
+	
+}
+
+__device__ void mrt_ntpor_guo_collision(Node *current_node, double *tau)
+{
+	double m_eq[Q],m[Q], F_coeff[DIM], force_term[Q], collision_s;
+	int d;
+	
+	// Add force contribution to velocity
+	#pragma unroll
+	for(d = 0; d<DIM; d++)
+	{
+		current_node->u[d] = current_node->u[d] + (1/(2*current_node->rho))*current_node->F[d];
+	}
+
+	// Calculate forcing term
+	for(int i=0;i<Q;i++)
+	{
+		#pragma unroll
+		for(d = 0; d<DIM; d++)
+		{
+		#if DIM > 2
+			F_coeff[d] = domain_constants.omega[i]*(1-(1/(2*(*tau))))*(((domain_constants.e[d][i]-current_node->u[d])*3)+(domain_constants.e[d][i]*9*((domain_constants.e[0][i]*current_node->u[0])+(domain_constants.e[1][i]*current_node->u[1])+(domain_constants.e[2][i]*current_node->u[2]))));
+		#else
+			F_coeff[d] = domain_constants.omega[i]*(1-(1/(2*(*tau))))*(((domain_constants.e[d][i]-current_node->u[d])*3)+(domain_constants.e[d][i]*9*((domain_constants.e[0][i]*current_node->u[0])+(domain_constants.e[1][i]*current_node->u[1]))));
+		#endif
+		}
+
+		force_term[i] = 0;
+		#pragma unroll
+		for(d = 0; d<DIM; d++)
+		{
+			force_term[i] += F_coeff[d]*current_node->F[d];
+		}
+	}
+
+	// Calculate equilibrium distribution
+	#ifdef D2Q9
+		meq_d2q9(current_node,m_eq);
+	#endif
+
+	#ifdef D3Q15
+		meq_d3q15(current_node, m_eq);
+	#endif
+
+	// Convert PDF's to MDF's (Momentum Distribution Function)
+	for(int i = 0; i<Q; i++)
+	{
+		m[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
+			m[i] = m[i] + domain_constants.M[i][j]*current_node->f[j];
+		}
+	}
+
+	// Execute MRT collision
+	for(int i = 0; i<Q;i++)
+	{
+		m[i] = domain_constants.tau_mrt[i]*(m[i]-m_eq[i]);
+	}
+
+	// convert MDF's back to PDF's adding the result of collision and forcing
+	for(int i = 0; i<Q; i++)
+	{
+		//reuse m_eq to save on memory...
+		m_eq[i] = 0;
+		for(int j=0; j<Q; j++)
+		{
 			
 			m_eq[i] = m_eq[i] + domain_constants.M_inv[i][j]*m[j];
 		}
-		current_node->f[i] = current_node->f[i] - m_eq[i]; // m_eq here is not equilibrium distribution, 
-	}													   // it is the result of previous computation!!!!
+
+		collision_s = current_node->f[domain_constants.opp[i]]-current_node->f[i];
+
+		current_node->f[i] = current_node->f[i] - (1-(current_node->B))*m_eq[i] + (1-(current_node->B))*force_term[i] + (current_node->B)*collision_s; // m_eq here is not equilibrium distribution, 
+	}																		// it is the result of previous computation!!!!
 	
 }
 
@@ -283,6 +434,10 @@ __device__ void bounceback(Node *current_node, double *tau)
 
 	current_node->u[0] = 0;
 	current_node->u[1] = 0;
+	#if DIM > 2
+		current_node->u[2] = 0;
+	#endif
+
 	current_node->rho = 0;
 }
 

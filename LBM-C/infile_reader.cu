@@ -64,8 +64,11 @@ class InfileReader {
 		else if (line.find("TauMRT")!=string::npos)
 		{
 			string screen_label = "S_";
+#if DIM < 3
 			stringstream(line) >> field_name >> domain_constants->tau_mrt[0] >> domain_constants->tau_mrt[1] >> domain_constants->tau_mrt[2] >> domain_constants->tau_mrt[3] >> domain_constants->tau_mrt[4] >> domain_constants->tau_mrt[5] >> domain_constants->tau_mrt[6] >> domain_constants->tau_mrt[7] >> domain_constants->tau_mrt[8];
-			
+#else
+			stringstream(line) >> field_name >> domain_constants->tau_mrt[0] >> domain_constants->tau_mrt[1] >> domain_constants->tau_mrt[2] >> domain_constants->tau_mrt[3] >> domain_constants->tau_mrt[4] >> domain_constants->tau_mrt[5] >> domain_constants->tau_mrt[6] >> domain_constants->tau_mrt[7] >> domain_constants->tau_mrt[8] >> domain_constants->tau_mrt[9] >> domain_constants->tau_mrt[10] >> domain_constants->tau_mrt[11] >> domain_constants->tau_mrt[12] >> domain_constants->tau_mrt[13] >> domain_constants->tau_mrt[14];
+#endif		
 			for(int i =0; i<Q; i++)
 			{
 				//stringstream(line) >> domain_constants->tau_mrt[i];

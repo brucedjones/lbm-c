@@ -65,7 +65,7 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		// Geometry:
 		current_node.B = domain->geometry[ixd];
 		if(current_node.B>=1){
-			collision_type = 5;
+			collision_type = 8;
 			micro_bc = 0;
 			macro_bc = 0;
 		}
