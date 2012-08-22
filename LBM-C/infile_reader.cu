@@ -134,6 +134,11 @@ class InfileReader {
 				col_type = "MRT";
 				domain_constants->collision_type = 2;
 			}
+			if(line.find("MRTPOR")!=string::npos)
+			{
+				col_type = "MRTPOR";
+				domain_constants->collision_type = 2;
+			}
 			stringstream(line) >> field_name;
 			cout << field_name << " = " << col_type << endl;
 		}
