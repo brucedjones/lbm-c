@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 		   (times->steady_check>0 && i%times->steady_check) || 
 		   (times->screen>0 && i%times->screen)) store_macros = true;
 
-		iterate();
+		iterate(i);
 
 		if(times->plot>0 && i%times->plot == 0)
 		{
@@ -317,7 +317,7 @@ void output_macros(int time)
 }
 
 // CONFIGURES THE KERNEL CONFIGURATION AND LAUNCHES KERNEL
-void iterate(void)
+void iterate(int t)
 {
 	// GRID AND BLOCK DEFINITIONS CAN BE CALCULATED BEFORE ITERATE
 	// DEFINE GRID AND BLOCK DIMS
@@ -341,11 +341,11 @@ void iterate(void)
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// ITERATE ONCE
-	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros);
+	iterate_kernel<<<grid_dim, block_dim>>>(lattice_device, domain_device, store_macros,t);
 	cudaThreadSynchronize();
 	Check_CUDA_Error("Kernel \"iterate_bulk 1\" Execution Failed!");  
 	// SWAP CURR AND PREV LATTICE POINTERS READY FOR NEXT ITER
-	swap_lattices();
+	//swap_lattices();
 }
 
 void swap_lattices(void)

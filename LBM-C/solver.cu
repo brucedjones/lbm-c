@@ -7,11 +7,12 @@
 #include "boundary_conditions/micro_bc.cuh"
 
 
-__global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_macros)
+__global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_macros, int t)
 {
 	// Declare Variables
 	int ixd, target_ixd, domain_size;
 	int i, d, macro_bc, micro_bc;
+	int ix[DIM][Q], ixd2[Q];
 	Node current_node;
 	
 	// Compute coordinates
@@ -75,8 +76,16 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		#pragma unroll
 		for(i = 0; i<Q; i++)
 		{
+			ix[0][i] = (current_node.coord[0]-(t*domain_constants.e[0][i]))%domain_constants.length[0];
+			ix[1][i] = (current_node.coord[1]-(t*domain_constants.e[1][i]))%domain_constants.length[0];
+			#if DIM > 2
+				ix[2][i] = (current_node.coord[2]-(t*domain_constants.e[2][i]))%domain_constants.length[0];
+				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0] + ix[2][i]*domain_constants.length[0]*domain_constants.length[1];
+			#else
+				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0];
+			#endif
 			// COALESCED READ
-			current_node.f[i] = lattice->f_prev[i][ixd];
+			current_node.f[i] = lattice->f_prev[i][ixd2[i]];
 			// CALCULATE MACROS
 			current_node.rho += current_node.f[i];
 			#pragma unroll
@@ -104,7 +113,7 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		#pragma unroll
 		for(int i=0;i<Q;i++)
 		{
-			#pragma unroll
+			/*#pragma unroll
 			for(d=0; d<DIM; d++)
 			{
 				target_coord[d] = current_node.coord[d]+domain_constants.e[d][i];
@@ -115,9 +124,9 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 				target_ixd = (target_coord[0] + target_coord[1]*domain_constants.length[0] + target_coord[2]*domain_constants.length[0]*domain_constants.length[1]);
 			#else
 				target_ixd = (target_coord[0] + target_coord[1]*domain_constants.length[0]);
-			#endif
+			#endif*/
 
-			lattice->f_curr[i][target_ixd] = current_node.f[i];
+			lattice->f_prev[i][ixd2[i]] = current_node.f[i];
 		}
 
 		// STORE MACROS IF REQUIRED
