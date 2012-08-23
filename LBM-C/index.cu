@@ -135,13 +135,13 @@ int main(int argc, char **argv)
 		domain_size = domain_size*domain_constants_host->length[d];
 	}
 
-	for(int i = 0; i<times->max+1; i++)
+	for(int i = 1; i<times->max+1; i++)
 	{
 		if((times->plot>0 && i%times->plot == 0) ||
 		   (times->steady_check>0 && i%times->steady_check) || 
 		   (times->screen>0 && i%times->screen)) store_macros = true;
 
-		iterate(i);
+		iterate(i-1);
 
 		if(times->plot>0 && i%times->plot == 0)
 		{
