@@ -76,10 +76,10 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		#pragma unroll
 		for(i = 0; i<Q; i++)
 		{
-			ix[0][i] = (current_node.coord[0]-(t*domain_constants.e[0][i]))%domain_constants.length[0];
-			ix[1][i] = (current_node.coord[1]-(t*domain_constants.e[1][i]))%domain_constants.length[0];
+			ix[0][i] = abs((current_node.coord[0]-(t*domain_constants.e[0][i]))%domain_constants.length[0]);
+			ix[1][i] = abs((current_node.coord[1]-(t*domain_constants.e[1][i]))%domain_constants.length[1]);
 			#if DIM > 2
-				ix[2][i] = (current_node.coord[2]-(t*domain_constants.e[2][i]))%domain_constants.length[0];
+				ix[2][i] = abs((current_node.coord[2]-(t*domain_constants.e[2][i]))%domain_constants.length[2]);
 				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0] + ix[2][i]*domain_constants.length[0]*domain_constants.length[1];
 			#else
 				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0];
