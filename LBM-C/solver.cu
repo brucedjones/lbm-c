@@ -76,16 +76,19 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		#pragma unroll
 		for(i = 0; i<Q; i++)
 		{
-			ix[0][i] = abs((current_node.coord[0]-(t*domain_constants.e[0][i]))%domain_constants.length[0]);
-			ix[1][i] = abs((current_node.coord[1]-(t*domain_constants.e[1][i]))%domain_constants.length[1]);
+			for(d = 0; d<DIM;d++)
+			{
+				ix[d][i] = ((current_node.coord[d]-(t*domain_constants.e[d][i]))%domain_constants.length[d]);
+				if (ix[d][i]<0) ix[d][i] = domain_constants.length[d]-(ix[d][i]*-1);
+			}
+			
 			#if DIM > 2
-				ix[2][i] = abs((current_node.coord[2]-(t*domain_constants.e[2][i]))%domain_constants.length[2]);
 				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0] + ix[2][i]*domain_constants.length[0]*domain_constants.length[1];
 			#else
 				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0];
 			#endif
 			// COALESCED READ
-			current_node.f[i] = lattice->f_prev[i][ixd2[i]];
+			current_node.f[i] = lattice->f[i][ixd2[i]];
 			// CALCULATE MACROS
 			current_node.rho += current_node.f[i];
 			#pragma unroll
@@ -126,7 +129,7 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 				target_ixd = (target_coord[0] + target_coord[1]*domain_constants.length[0]);
 			#endif*/
 
-			lattice->f_prev[i][ixd2[i]] = current_node.f[i];
+			lattice->f[i][ixd2[i]] = current_node.f[i];
 		}
 
 		// STORE MACROS IF REQUIRED

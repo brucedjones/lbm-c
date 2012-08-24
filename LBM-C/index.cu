@@ -348,16 +348,6 @@ void iterate(int t)
 	//swap_lattices();
 }
 
-void swap_lattices(void)
-{
-	cudasafe(cudaMemcpy(lattice_device_prototype, lattice_device, sizeof(Lattice),cudaMemcpyDeviceToHost),"Copy Data: Device Lattice Pointers From Device");
-	double **tmp_1 = lattice_device_prototype->f_prev;
-	double **tmp_2 = lattice_device_prototype->f_curr;
-	lattice_device_prototype->f_curr = tmp_1;
-	lattice_device_prototype->f_prev = tmp_2;
-	cudasafe(cudaMemcpy(lattice_device, lattice_device_prototype, sizeof(Lattice),cudaMemcpyHostToDevice),"Copy Data: Device Lattice Pointers To Device");
-}
-
 #if DIM > 2
 	struct energy
 	{

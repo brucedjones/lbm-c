@@ -7,8 +7,7 @@
 typedef struct 
 {
 // Population distributions
-	double **f_prev;
-	double **f_curr;
+	double **f;
 } Lattice;
 
 typedef struct

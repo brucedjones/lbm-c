@@ -21,7 +21,7 @@ class ModelBuilder
 	Lattice *lattice_d;
 	Domain *domain_d;
 	DomainConstant *domain_constants_d;
-	double **f_1_d, **f_2_d, *rho_d, **u_d, *geometry_d, **force_d; 
+	double **f_d, *rho_d, **u_d, *geometry_d, **force_d; 
 	int *micro_bc_d;
 	int *macro_bc_d;
 
@@ -95,17 +95,14 @@ class ModelBuilder
 
 		// Allocate required arrays
 		// PDFS
-		double *f_1_tmp[Q],*f_2_tmp[Q];
-		combi_malloc<double*>(&f_h, &f_1_d, sizeof(double*)*Q);
-		cudasafe(cudaMalloc((void **)&f_2_d,sizeof(double*)*Q), "Model Builder: Device memory allocation failed!");
+		double *f_tmp[Q];
+		combi_malloc<double*>(&f_h, &f_d, sizeof(double*)*Q);
 		for(int i=0;i<Q;i++)
 		{
-			combi_malloc<double>(&f_h[i], &f_1_tmp[i], domain_data_size);
-			cudasafe(cudaMalloc((void **)&f_2_tmp[i], domain_data_size), "Model Builder: Device memory allocation failed!");
+			combi_malloc<double>(&f_h[i], &f_tmp[i], domain_data_size);
 		}
-		cudasafe(cudaMemcpy(f_1_d,f_1_tmp,sizeof(double*)*Q,cudaMemcpyHostToDevice), "Model Builder: Device memory allocation failed!");
-		cudasafe(cudaMemcpy(f_2_d,f_2_tmp,sizeof(double*)*Q,cudaMemcpyHostToDevice), "Model Builder: Device memory allocation failed!");
-		
+		cudasafe(cudaMemcpy(f_d,f_tmp,sizeof(double*)*Q,cudaMemcpyHostToDevice), "Model Builder: Device memory allocation failed!");
+
 		// RHO
 		combi_malloc<double>(&rho_h, &rho_d, domain_data_size);
 		
@@ -149,13 +146,11 @@ class ModelBuilder
 
 	void variable_assembler()
 	{
-		lattice_h->f_prev = f_h;
-		lattice_h->f_curr = f_h;
+		lattice_h->f = f_h;
 
 
 		Lattice *lattice_d_tmp = (Lattice *)malloc(sizeof(Lattice));
-		lattice_d_tmp->f_prev = f_1_d;
-		lattice_d_tmp->f_curr = f_2_d;
+		lattice_d_tmp->f = f_d;
 		cudasafe(cudaMemcpy(lattice_d, lattice_d_tmp, sizeof(Lattice),cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 
 		domain_h->micro_bc = micro_bc_h;
@@ -237,11 +232,8 @@ class ModelBuilder
 
 	void load_static_IC()
 {
-	double *f_1_d_tmp[Q];
-	cudasafe(cudaMemcpy(f_1_d_tmp, f_1_d, sizeof(double*)*Q,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
-
-	double *f_2_d_tmp[Q];
-	cudasafe(cudaMemcpy(f_2_d_tmp, f_2_d, sizeof(double*)*Q,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
+	double *f_d_tmp[Q];
+	cudasafe(cudaMemcpy(f_d_tmp, f_d, sizeof(double*)*Q,cudaMemcpyDeviceToHost),"Model Builder: Copy from device memory failed!");
 
 	double omega[Q];
 	LOAD_OMEGA(omega);
@@ -249,10 +241,9 @@ class ModelBuilder
 	{
 		for(int index=0;index<(domain_size);index++)
 		{
-			lattice_h->f_curr[i][index] = 1.0*omega[i];
+			lattice_h->f[i][index] = 1.0*omega[i];
 		}
-		cudasafe(cudaMemcpy(f_1_d_tmp[i], f_h[i], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
-		cudasafe(cudaMemcpy(f_2_d_tmp[i], f_h[i], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
+		cudasafe(cudaMemcpy(f_d_tmp[i], f_h[i], sizeof(double)*domain_size,cudaMemcpyHostToDevice),"Model Builder: Copy to device memory failed!");
 	}
 }
 
