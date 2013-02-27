@@ -51,6 +51,7 @@ __device__ __noinline__ void bgk_collision(Node *current_node, double *tau)
 	double f_eq[Q], u_sq, eu;
 
 	u_sq = u_square(current_node);
+
 	for(int i=0;i<Q;i++)
 	{
 		eu = e_mul_u(current_node, &i);
@@ -485,7 +486,8 @@ __device__ void meq_d3q15(Node *current_node, double *meq)
 
 	meq[0] = current_node->rho;
 	meq[1] = (-1*current_node->rho)+(jx*jx+jy*jy+jz*jz);
-	meq[2] = -current_node->rho;
+	//meq[2] = -current_node->rho;
+	meq[2] = current_node->rho-5*(jx*jx+jy*jy+jz*jz);
 	meq[3] = jx;
 	meq[4] = (-7/3)*jx;
 	meq[5] = jy;

@@ -116,19 +116,6 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		#pragma unroll
 		for(int i=0;i<Q;i++)
 		{
-			/*#pragma unroll
-			for(d=0; d<DIM; d++)
-			{
-				target_coord[d] = current_node.coord[d]+domain_constants.e[d][i];
-				if(target_coord[d]>(domain_constants.length[d]-1)) target_coord[d] = 0; if(target_coord[d]<0) target_coord[d] = domain_constants.length[d]-1;
-			}
-
-			#if DIM > 2
-				target_ixd = (target_coord[0] + target_coord[1]*domain_constants.length[0] + target_coord[2]*domain_constants.length[0]*domain_constants.length[1]);
-			#else
-				target_ixd = (target_coord[0] + target_coord[1]*domain_constants.length[0]);
-			#endif*/
-
 			lattice->f[i][ixd2[i]] = current_node.f[i];
 		}
 

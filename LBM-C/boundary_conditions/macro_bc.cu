@@ -9,11 +9,11 @@
 #include "../data_types.cuh"
 #include "cuda_runtime.h"
 
-__device__ __constant__ macro_condition macro_conditions[15] = { presc_ux,			presc_uy,		presc_uz,
-																presc_uy_ux,		presc_uz_ux,
-																presc_uz_uy,		presc_ux_uy_uz,
-																presc_rho,			presc_rho_ux,		presc_rho_uy,		presc_rho_uz, 
-																presc_rho_ux_uy,	presc_rho_ux_uz,	presc_rho_uy_uz,
+__device__ __constant__ macro_condition macro_conditions[15] = { presc_ux,		 presc_uy,			presc_uz,
+																presc_uy_ux,	 presc_uz_ux,
+																presc_uz_uy,	 presc_ux_uy_uz,
+																presc_rho,		 presc_rho_ux,		presc_rho_uy,		presc_rho_uz, 
+																presc_rho_ux_uy, presc_rho_ux_uz,	presc_rho_uy_uz,
 																presc_rho_ux_uy_uz};
 
 __device__ __noinline__ void presc_ux(Node *current_node, Domain *domain)
