@@ -78,10 +78,13 @@ __global__ void iterate_kernel (Lattice *lattice, Domain *domain, bool store_mac
 		{
 			for(d = 0; d<DIM;d++)
 			{
+				// Compute PDF origin ijk
 				ix[d][i] = ((current_node.coord[d]-(t*domain_constants.e[d][i]))%domain_constants.length[d]);
+				// Account for C implementation of modulo on negative numbers
 				if (ix[d][i]<0) ix[d][i] = domain_constants.length[d]-(ix[d][i]*-1);
 			}
 			
+			// Compute PDF origin index
 			#if DIM > 2
 				ixd2[i] = ix[0][i] + ix[1][i]*domain_constants.length[0] + ix[2][i]*domain_constants.length[0]*domain_constants.length[1];
 			#else
